@@ -1,0 +1,12 @@
+{
+  "name": "@tybys/cgen",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "bin": {
+    "cgen": "./bin/cgen.js"
+  },
+  "keywords": [],
+  "author": "toyobayashi",
+  "license": "MIT"
+}
