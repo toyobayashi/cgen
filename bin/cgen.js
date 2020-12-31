@@ -1,12 +1,8 @@
 #!/usr/bin/env node
-const fs = require('fs')
+
 const path = require('path')
 
-const { generateCMakeLists } = require('..')
-
-function loadConfig (root) {
-  return JSON.parse(fs.readFileSync(path.join(root, 'cgen.json'), 'utf8'))
-}
+const { generateCMakeLists, loadConfig, cleanBuild } = require('..')
 
 const command = process.argv[2]
 
@@ -19,6 +15,8 @@ if (command === '-v' || command === '--version' || command === '-V') {
   console.log(require('../package.json').version)
   process.exit(0)
 }
+
+const buildDir = '.cgenbuild'
 
 if (command === 'configure') {
   const cliOptions = require('minimist')(process.argv.slice(3))
@@ -53,8 +51,8 @@ async function configure (cliOptions = {}) {
   const root = process.cwd()
   const config = loadConfig(root)
   generateCMakeLists(config, root)
-  return require('./util/cmake.js').configure(root, path.join(root, 'out'), {
-    ...((!!cliOptions.debug) ? { CMAKE_BUILD_TYPE: 'Debug' } : {})
+  return require('./util/cmake.js').configure(root, path.join(root, buildDir), {
+    ...((!!cliOptions.debug) ? { CMAKE_BUILD_TYPE: 'Debug' } : { CMAKE_BUILD_TYPE: 'Release' })
   }).catch(err =>{
     console.error(err)
     process.exit(1)
@@ -63,7 +61,7 @@ async function configure (cliOptions = {}) {
 
 async function build (cliOptions) {
   const root = process.cwd()
-  return require('./util/cmake.js').build(path.join(root, 'out'), ['--config', (!!cliOptions.debug) ? 'Debug' : 'Release']).catch(err =>{
+  return require('./util/cmake.js').build(path.join(root, buildDir), ['--config', (!!cliOptions.debug) ? 'Debug' : 'Release']).catch(err =>{
     console.error(err)
     process.exit(1)
   })
@@ -71,5 +69,5 @@ async function build (cliOptions) {
 
 function clean () {
   const root = process.cwd()
-  return require('./util/cmake.js').clean(root, path.join(root, 'out'))
+  cleanBuild(root, buildDir)
 }

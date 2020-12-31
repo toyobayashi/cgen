@@ -1,6 +1,9 @@
 const fs = require('fs')
 const path = require('path')
+const Module = require('module')
 const { EOL } = require('os')
+
+const createRequire = Module.createRequire || Module.createRequireFromPath
 
 function isString (o) {
   return typeof o === 'string'
@@ -81,10 +84,41 @@ function mergeTarget (target, ostarget) {
 
   mergeObject(target, ostarget, 'defines')
   mergeArray(target, ostarget, 'includePaths')
+  mergeArray(target, ostarget, 'publicIncludePaths')
   mergeArray(target, ostarget, 'libPaths')
   mergeArray(target, ostarget, 'libs')
+  mergeValue(target, ostarget, 'staticVCRuntime')
 
   return target
+}
+
+function loadConfig (root) {
+  return JSON.parse(fs.readFileSync(path.join(root, 'cgen.json'), 'utf8'))
+}
+
+function rmSync (p) {
+  if (typeof fs.rmSync === 'function') {
+    fs.rmSync(p, { recursive: true, force: true })
+  } else {
+    fs.rmdirSync(p, { recursive: true })
+  }
+}
+
+function cleanBuild (configRoot, buildDirName) {
+  const config = loadConfig(configRoot)
+  const dependencies = config.dependencies || []
+  if (dependencies.length > 0) {
+    const requireFunction = createRequire(path.join(configRoot, 'package.json'))
+    dependencies.forEach((mod) => {
+      const root = findProjectRoot(requireFunction.resolve(mod))
+      // const conf = loadConfig(root)
+      cleanBuild(root, buildDirName)
+    })
+  }
+  const cmk = path.join(configRoot, 'CMakeLists.txt')
+  const out = path.join(configRoot, buildDirName)
+  if (fs.existsSync(cmk)) rmSync(cmk)
+  if (fs.existsSync(out)) rmSync(out)
 }
 
 function generateCMakeLists (config, configPath) {
@@ -96,6 +130,22 @@ function generateCMakeLists (config, configPath) {
   const targets = config.targets
 
   let injectVCRuntimeFunction = false
+  let injectRequireFunction = false
+
+  const dependencies = config.dependencies || []
+  if (dependencies.length > 0) {
+    if (!injectRequireFunction) {
+      cmklists.writeLine(`include("${path.relative(configPath, getCMakeInclude('require')).replace(/\\/g, '/')}")`)
+      injectRequireFunction = true
+    }
+    const requireFunction = createRequire(path.join(configPath, 'package.json'))
+    dependencies.forEach((mod) => {
+      const root = findProjectRoot(requireFunction.resolve(mod))
+      const conf = loadConfig(root)
+      generateCMakeLists(conf, root)
+      cmklists.writeLine(`cgen_require("${mod}")`)
+    })
+  }
 
   for (let i = 0; i < targets.length; i++) {
     const target = targets[i]
@@ -130,6 +180,10 @@ function generateCMakeLists (config, configPath) {
     if (includePaths.length > 0) {
       cmklists.writeLine(`target_include_directories(${target.name} PRIVATE${sep()}${includePaths.join(sep())})`)
     }
+    const publicIncludePaths = target.publicIncludePaths || []
+    if (publicIncludePaths.length > 0) {
+      cmklists.writeLine(`target_include_directories(${target.name} PUBLIC${sep()}${publicIncludePaths.join(sep())})`)
+    }
     const libPaths = target.libPaths || []
     if (libPaths.length > 0) {
       cmklists.writeLine(`target_link_directories(${target.name} PRIVATE${sep()}${libPaths.join(sep())})`)
@@ -152,7 +206,7 @@ function generateCMakeLists (config, configPath) {
         cmklists.writeLine(`include("${path.relative(configPath, getCMakeInclude('vcruntime')).replace(/\\/g, '/')}")`)
         injectVCRuntimeFunction = true
       }
-      cmklists.writeLine(`with_mt_if_msvc(${target.name})`)
+      cmklists.writeLine(`cgen_target_vcrt_mt(${target.name})`)
     }
   }
 
@@ -171,11 +225,40 @@ function generateCMakeLists (config, configPath) {
 function getCMakeInclude (key) {
   switch (key) {
     case 'vcruntime': return path.join(__dirname, 'cmake/vcruntime.cmake')
+    case 'require': return path.join(__dirname, 'cmake/require.cmake')
     default: return ''
   }
 }
 
+function findProjectRoot (start) {
+  let current = start ? path.resolve(start) : process.cwd()
+  let previous = ''
+  do {
+    const target = path.join(current, 'package.json')
+    if (fs.existsSync(target) && fs.statSync(target).isFile()) {
+      return current
+    }
+    previous = current
+    current = path.dirname(current)
+  } while (current !== previous)
+  return ''
+}
+
+function resolve (dirname, requireFunction, request) {
+  const main = requireFunction.resolve(request)
+  const dir = findProjectRoot(main)
+  if (fs.existsSync(path.join(dir, 'cgen.json'))) {
+    const relativeDir = path.relative(dirname, dir).replace(/\\/g, '/')
+    return `${dir},${relativeDir}`
+  }
+  return ''
+}
+
 module.exports = {
   generateCMakeLists,
-  getCMakeInclude
+  getCMakeInclude,
+  findProjectRoot,
+  resolve,
+  loadConfig,
+  cleanBuild
 }

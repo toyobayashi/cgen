@@ -1,4 +1,5 @@
-/test/out
+.cgenbuild
 /test/CMakeLists.txt
-node_modules
+/node_modules
+/test/node_modules/**/CMakeLists.txt
 package-lock.json

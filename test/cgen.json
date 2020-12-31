@@ -1,5 +1,8 @@
 {
   "project": "hello",
+  "dependencies": [
+    "oid"
+  ],
   "targets": [
     {
       "name": "hello",
@@ -7,7 +10,7 @@
       "sources": [
         "./src/main.c"
       ],
-      "libs": ["libhello"],
+      "libs": ["libhello", "liboid"],
       "staticVCRuntime": true
     },
     {

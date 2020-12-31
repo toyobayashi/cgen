@@ -24,16 +24,6 @@ async function rebuild (root, buildDir, defines, configureArgs = [], buildArgs =
   await build(buildDir, buildArgs)
 }
 
-function clean (root, buildDir) {
-  if (typeof fs.rmSync === 'function') {
-    fs.rmSync(buildDir, { recursive: true, force: true })
-  } else {
-    fs.rmdirSync(buildDir, { recursive: true })
-  }
-  const cmklists = path.join(root, 'CMakeLists.txt')
-  if (fs.existsSync(cmklists)) fs.unlinkSync(cmklists)
-}
-
 async function configure (root, buildDir, defines, configureArgs = []) {
   fs.mkdirSync(buildDir, { recursive: true })
 
@@ -58,6 +48,5 @@ async function build (buildDir, buildArgs = []) {
 module.exports = {
   configure,
   build,
-  clean,
   rebuild
 }

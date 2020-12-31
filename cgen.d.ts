@@ -10,6 +10,7 @@ declare interface Target {
 
   defines?: Record<string, string>;
   includePaths?: string[];
+  publicIncludePaths?: string[];
   libPaths?: string[];
   libs?: string[];
 
@@ -25,4 +26,5 @@ declare interface Configuration {
   targets: Target[];
   minimumVersion?: string;
   postScript?: string;
+  dependencies?: string[];
 }
