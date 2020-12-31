@@ -21,15 +21,13 @@ if (command === '-v' || command === '--version' || command === '-V') {
 }
 
 if (command === 'configure') {
-  configure()
+  const cliOptions = require('minimist')(process.argv.slice(3))
+  configure(cliOptions)
 }
 
 if (command === 'build') {
-  const root = process.cwd()
-  require('./util/cmake.js').build(path.join(root, 'out'), ['--config', 'Release']).catch(err =>{
-    console.error(err)
-    process.exit(1)
-  })
+  const cliOptions = require('minimist')(process.argv.slice(3))
+  build(cliOptions)
 }
 
 if (command === 'clean') {
@@ -37,9 +35,10 @@ if (command === 'clean') {
 }
 
 if (command === 'rebuild') {
+  const cliOptions = require('minimist')(process.argv.slice(3))
   clean()
-  configure().then(() => {
-    return build()
+  configure(cliOptions).then(() => {
+    return build(cliOptions)
   }).catch(err => {
     console.error(err)
     process.exit(1)
@@ -50,19 +49,21 @@ function printHelp () {
   console.log(`cgen`)
 }
 
-async function configure () {
+async function configure (cliOptions = {}) {
   const root = process.cwd()
   const config = loadConfig(root)
   generateCMakeLists(config, root)
-  return require('./util/cmake.js').configure(root, path.join(root, 'out'), {}).catch(err =>{
+  return require('./util/cmake.js').configure(root, path.join(root, 'out'), {
+    ...((!!cliOptions.debug) ? { CMAKE_BUILD_TYPE: 'Debug' } : {})
+  }).catch(err =>{
     console.error(err)
     process.exit(1)
   })
 }
 
-async function build () {
+async function build (cliOptions) {
   const root = process.cwd()
-  return require('./util/cmake.js').build(path.join(root, 'out'), ['--config', 'Release']).catch(err =>{
+  return require('./util/cmake.js').build(path.join(root, 'out'), ['--config', (!!cliOptions.debug) ? 'Debug' : 'Release']).catch(err =>{
     console.error(err)
     process.exit(1)
   })

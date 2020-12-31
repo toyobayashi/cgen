@@ -1,6 +1,5 @@
 {
   "project": "hello",
-  "postScript": "post.js",
   "targets": [
     {
       "name": "hello",
