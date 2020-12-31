@@ -149,7 +149,7 @@ function generateCMakeLists (config, configPath) {
 
     if (!!target.staticVCRuntime) {
       if (!injectVCRuntimeFunction) {
-        cmklists.write(fs.readFileSync(path.join(__dirname, 'cmake/vcruntime.cmake'), 'utf8'))
+        cmklists.writeLine(`include("${path.relative(configPath, getCMakeInclude('vcruntime')).replace(/\\/g, '/')}")`)
         injectVCRuntimeFunction = true
       }
       cmklists.writeLine(`with_mt_if_msvc(${target.name})`)
@@ -168,6 +168,14 @@ function generateCMakeLists (config, configPath) {
   }
 }
 
+function getCMakeInclude (key) {
+  switch (key) {
+    case 'vcruntime': return path.join(__dirname, 'cmake/vcruntime.cmake')
+    default: return ''
+  }
+}
+
 module.exports = {
-  generateCMakeLists
+  generateCMakeLists,
+  getCMakeInclude
 }
