@@ -46,7 +46,11 @@ function sep (indent = 2) {
 
 function platformTarget (target) {
   switch (process.platform) {
-    case 'win32': return target.windows || null
+    case 'win32': return {
+      compileOptions: ['/source-charset:utf-8'],
+      defines: ['_CRT_SECURE_NO_WARNINGS', 'UNICODE', '_UNICODE'],
+      ...(target.windows || {})
+    }
     case 'linux': return target.linux || null
     case 'darwin': return target.macos || null
     default: return null
@@ -61,14 +65,14 @@ function mergeValue (target, ostarget, key) {
 
 function mergeArray (target, ostarget, key) {
   if (Object.prototype.hasOwnProperty.call(ostarget, key)) {
-    target[key] = Array.from(new Set([...target[key], ...(ostarget[key] || [])]))
+    target[key] = Array.from(new Set([...(target[key] || []), ...(ostarget[key] || [])]))
   }
 }
 
 function mergeObject (target, ostarget, key) {
   if (Object.prototype.hasOwnProperty.call(ostarget, key)) {
     target[key] = {
-      ...target[key],
+      ...(target[key] || {}),
       ...(ostarget[key] || {})
     }
   }
@@ -80,9 +84,11 @@ function mergeTarget (target, ostarget) {
   mergeArray(target, ostarget, 'sources')
   mergeValue(target, ostarget, 'cStandard')
   mergeValue(target, ostarget, 'cxxStandard')
+  mergeArray(target, ostarget, 'compileOptions')
   mergeArray(target, ostarget, 'linkOptions')
 
-  mergeObject(target, ostarget, 'defines')
+  mergeArray(target, ostarget, 'defines')
+  mergeArray(target, ostarget, 'publicDefines')
   mergeArray(target, ostarget, 'includePaths')
   mergeArray(target, ostarget, 'publicIncludePaths')
   mergeArray(target, ostarget, 'libPaths')
@@ -125,6 +131,10 @@ function generateCMakeLists (config, configPath) {
   const cmklists = new CMakeLists(path.join(configPath, 'CMakeLists.txt'))
 
   cmklists.writeLine(`cmake_minimum_required(VERSION ${config.minimumVersion || '3.7'})`)
+  
+  cmklists.writeLine(`if(\${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.15.0")`)
+  cmklists.writeLine(`  cmake_policy(SET CMP0091 NEW)`)
+  cmklists.writeLine(`endif()`)
   cmklists.writeLine(`project(${config.project})`)
 
   const targets = config.targets
@@ -175,6 +185,10 @@ function generateCMakeLists (config, configPath) {
     const defines = target.defines || []
     if (defines.length > 0) {
       cmklists.writeLine(`target_compile_definitions(${target.name} PRIVATE${sep()}${defines.map(v => v.replace(/"/g, '\\"')).join(sep())})`)
+    }
+    const publicDefines = target.publicDefines || []
+    if (publicDefines.length > 0) {
+      cmklists.writeLine(`target_compile_definitions(${target.name} PUBLIC${sep()}${publicDefines.map(v => v.replace(/"/g, '\\"')).join(sep())})`)
     }
     const includePaths = target.includePaths || []
     if (includePaths.length > 0) {
@@ -245,13 +259,18 @@ function findProjectRoot (start) {
 }
 
 function resolve (dirname, requireFunction, request) {
-  const main = requireFunction.resolve(request)
-  const dir = findProjectRoot(main)
-  if (fs.existsSync(path.join(dir, 'cgen.json'))) {
-    const relativeDir = path.relative(dirname, dir).replace(/\\/g, '/')
-    return `${dir},${relativeDir}`
+  if (!path.isAbsolute(request) && request.charAt(0) !== '.') {
+    const main = requireFunction.resolve(request)
+    const dir = findProjectRoot(main)
+    if (fs.existsSync(path.join(dir, 'cgen.json'))) {
+      const relativeDir = path.relative(dirname, dir).replace(/\\/g, '/')
+      return `${dir},${relativeDir}`
+    }
+    return ''
   }
-  return ''
+  if (!path.isAbsolute(request)) request = path.join(dirname, request)
+  const relativeDir = path.relative(dirname, request).replace(/\\/g, '/')
+  return `${request},${relativeDir}`
 }
 
 module.exports = {

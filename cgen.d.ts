@@ -8,7 +8,8 @@ declare interface Target {
   linkOptions?: string[];
   compileOptions?: string[];
 
-  defines?: Record<string, string>;
+  defines?: string[];
+  publicDefines?: string[];
   includePaths?: string[];
   publicIncludePaths?: string[];
   libPaths?: string[];
