@@ -1,8 +1,8 @@
-{
+module.exports = () => ({
   "project": "hello",
-  "dependencies": [
-    "oid"
-  ],
+  "dependencies": {
+    "oid": {}
+  },
   "targets": [
     {
       "name": "hello",
@@ -22,4 +22,4 @@
       "staticVCRuntime": true
     }
   ]
-}
+})

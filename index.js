@@ -1,3 +1,6 @@
+'use strict'
+Object.defineProperty(exports, '__esModule', { value: true })
+
 const fs = require('fs')
 const path = require('path')
 const Module = require('module')
@@ -5,39 +8,47 @@ const { EOL } = require('os')
 
 const createRequire = Module.createRequire || Module.createRequireFromPath
 
+const { CMakeLists } = require('./lib/CMakeLists')
+
 function isString (o) {
   return typeof o === 'string'
 }
 
-class CMakeLists {
-  constructor (filePath) {
-    Object.defineProperties(this, {
-      path: {
-        configurable: true,
-        enumerable: true,
-        writable: false,
-        value: filePath
-      },
-      _fd: {
-        configurable: true,
-        enumerable: true,
-        writable: false,
-        value: fs.openSync(filePath, 'w+')
-      }
-    })
-  }
+const configFiles = [
+  'cgen.config.json',
+  'cgen.config.js'
+]
 
-  write (str) {
-    fs.writeSync(this._fd, str)
+function existsConfigFile (root) {
+  for (let i = 0; i < configFiles.length; i++) {
+    if (fs.existsSync(path.join(root, configFiles[i]))) {
+      return true
+    }
   }
+  return false
+}
 
-  writeLine (str) {
-    fs.writeSync(this._fd, str + EOL)
+function getDefaultExport (exports) {
+  if (exports.__esModule) {
+    return exports['default']
   }
+  return exports
+}
 
-  close () {
-    fs.closeSync(this._fd)
+function loadConfig (root, options = {}) {
+  const json = path.join(root, 'cgen.config.json')
+  if (fs.existsSync(json)) {
+    return JSON.parse(fs.readFileSync(json, 'utf8'))
   }
+  const js = path.join(root, 'cgen.config.js')
+  const o = getDefaultExport(require(js))
+  if (typeof o === 'function') {
+    return o(options)
+  }
+  if (typeof o === 'object' && o !== null) {
+    return o
+  }
+  throw new Error('Invalid config')
 }
 
 function sep (indent = 2) {
@@ -98,10 +109,6 @@ function mergeTarget (target, ostarget) {
   return target
 }
 
-function loadConfig (root) {
-  return JSON.parse(fs.readFileSync(path.join(root, 'cgen.json'), 'utf8'))
-}
-
 function rmSync (p) {
   if (typeof fs.rmSync === 'function') {
     fs.rmSync(p, { recursive: true, force: true })
@@ -112,10 +119,11 @@ function rmSync (p) {
 
 function cleanBuild (configRoot, buildDirName) {
   const config = loadConfig(configRoot)
-  const dependencies = config.dependencies || []
-  if (dependencies.length > 0) {
+  const dependencies = config.dependencies || {}
+  const names = Object.keys(dependencies)
+  if (names.length > 0) {
     const requireFunction = createRequire(path.join(configRoot, 'package.json'))
-    dependencies.forEach((mod) => {
+    names.forEach((mod) => {
       const root = findProjectRoot(requireFunction.resolve(mod))
       // const conf = loadConfig(root)
       cleanBuild(root, buildDirName)
@@ -130,28 +138,29 @@ function cleanBuild (configRoot, buildDirName) {
 function generateCMakeLists (config, configPath) {
   const cmklists = new CMakeLists(path.join(configPath, 'CMakeLists.txt'))
 
-  cmklists.writeLine(`cmake_minimum_required(VERSION ${config.minimumVersion || '3.7'})`)
+  cmklists.writeHeadLine(`cmake_minimum_required(VERSION ${config.minimumVersion || '3.7'})`)
   
-  cmklists.writeLine(`if(\${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.15.0")`)
-  cmklists.writeLine(`  cmake_policy(SET CMP0091 NEW)`)
-  cmklists.writeLine(`endif()`)
-  cmklists.writeLine(`project(${config.project})`)
+  cmklists.writeHeadLine(`if(\${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.15.0")`)
+  cmklists.writeHeadLine(`  cmake_policy(SET CMP0091 NEW)`)
+  cmklists.writeHeadLine(`endif()`)
+  cmklists.writeHeadLine(`project(${config.project})`)
 
   const targets = config.targets
 
   let injectVCRuntimeFunction = false
   let injectRequireFunction = false
 
-  const dependencies = config.dependencies || []
-  if (dependencies.length > 0) {
+  const dependencies = config.dependencies || {}
+  const names = Object.keys(dependencies)
+  if (names.length > 0) {
     if (!injectRequireFunction) {
-      cmklists.writeLine(`include("${path.relative(configPath, getCMakeInclude('require')).replace(/\\/g, '/')}")`)
+      cmklists.writeIncludeLine(`include("${path.relative(configPath, getCMakeInclude('require')).replace(/\\/g, '/')}")`)
       injectRequireFunction = true
     }
     const requireFunction = createRequire(path.join(configPath, 'package.json'))
-    dependencies.forEach((mod) => {
+    names.forEach((mod) => {
       const root = findProjectRoot(requireFunction.resolve(mod))
-      const conf = loadConfig(root)
+      const conf = loadConfig(root, dependencies[mod] || {})
       generateCMakeLists(conf, root)
       cmklists.writeLine(`cgen_require("${mod}")`)
     })
@@ -217,7 +226,7 @@ function generateCMakeLists (config, configPath) {
 
     if (!!target.staticVCRuntime) {
       if (!injectVCRuntimeFunction) {
-        cmklists.writeLine(`include("${path.relative(configPath, getCMakeInclude('vcruntime')).replace(/\\/g, '/')}")`)
+        cmklists.writeIncludeLine(`include("${path.relative(configPath, getCMakeInclude('vcruntime')).replace(/\\/g, '/')}")`)
         injectVCRuntimeFunction = true
       }
       cmklists.writeLine(`cgen_target_vcrt_mt(${target.name})`)
@@ -228,11 +237,7 @@ function generateCMakeLists (config, configPath) {
 
   if (config.postScript) {
     const mod = require(path.join(configPath, config.postScript))
-    if (mod.__esModule) {
-      mod['default'](fs.readFileSync(cmklists.path, 'utf8'), cmklists.path)
-    } else {
-      mod(fs.readFileSync(cmklists.path, 'utf8'), cmklists.path)
-    }
+    getDefaultExport(mod)(fs.readFileSync(cmklists.path, 'utf8'), cmklists.path)
   }
 }
 
@@ -262,7 +267,7 @@ function resolve (dirname, requireFunction, request) {
   if (!path.isAbsolute(request) && request.charAt(0) !== '.') {
     const main = requireFunction.resolve(request)
     const dir = findProjectRoot(main)
-    if (fs.existsSync(path.join(dir, 'cgen.json'))) {
+    if (existsConfigFile(dir)) {
       const relativeDir = path.relative(dirname, dir).replace(/\\/g, '/')
       return `${dir},${relativeDir}`
     }
@@ -273,11 +278,9 @@ function resolve (dirname, requireFunction, request) {
   return `${request},${relativeDir}`
 }
 
-module.exports = {
-  generateCMakeLists,
-  getCMakeInclude,
-  findProjectRoot,
-  resolve,
-  loadConfig,
-  cleanBuild
-}
+exports.generateCMakeLists = generateCMakeLists
+exports.getCMakeInclude = getCMakeInclude
+exports.findProjectRoot = findProjectRoot
+exports.resolve = resolve
+exports.loadConfig = loadConfig
+exports.cleanBuild = cleanBuild
