@@ -19,8 +19,21 @@ function which (cmd, env = process.env) {
   const extlist = process.platform === 'win32' ? PATHEXT.split(';').map(v => v.toLowerCase()) : ['', '.sh']
   for (let i = 0; i < pathList.length; i++) {
     const p = pathList[i]
-    for (let j = 0; j < extlist.length; j++) {
-      const target = path.extname(cmd) === '' ? path.join(p, cmd + extlist[j]) : path.join(p, cmd)
+    if (path.extname(cmd) === '') {
+      for (let j = 0; j < extlist.length; j++) {
+        const target = path.join(p, cmd + extlist[j])
+        if (fs.existsSync(target)) {
+          if (process.platform === 'win32') {
+            return target
+          }
+          try {
+            fs.accessSync(target, fs.constants.X_OK)
+            return target
+          } catch {}
+        }
+      }
+    } else {
+      const target = path.join(p, cmd)
       if (fs.existsSync(target)) {
         if (process.platform === 'win32') {
           return target
