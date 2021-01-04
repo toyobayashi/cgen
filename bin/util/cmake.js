@@ -12,19 +12,7 @@ function checkCMake () {
 
 checkCMake()
 
-async function rebuild (root, buildDir, defines, configureArgs = [], buildArgs = []) {
-  if (typeof fs.rmSync === 'function') {
-    fs.rmSync(buildDir, { recursive: true, force: true })
-  } else {
-    fs.rmdirSync(buildDir, { recursive: true })
-  }
-  const cmklists = path.join(root, 'CMakeLists.txt')
-  if (fs.existsSync(cmklists)) fs.unlinkSync(cmklists)
-  await configure(root, buildDir, defines, configureArgs)
-  await build(buildDir, buildArgs)
-}
-
-async function configure (root, buildDir, defines, configureArgs = []) {
+async function configure (root, buildDir, defines = {}, configureArgs = []) {
   fs.mkdirSync(buildDir, { recursive: true })
 
   const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
@@ -39,6 +27,37 @@ async function configure (root, buildDir, defines, configureArgs = []) {
   await spawn('cmake', cmakeArgs, root)
 }
 
+async function emConfigure (root, buildDir, defines = {}, configureArgs = []) {
+  fs.mkdirSync(buildDir, { recursive: true })
+
+  if (process.platform === 'win32') {
+    const nmakePath = which('nmake')
+    defines.CMAKE_MAKE_PROGRAM = nmakePath ? 'nmake' : 'make'
+    // defines.CMAKE_VERBOSE_MAKEFILE = 'ON'
+    const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
+    const cmakeArgs = ['cmake', 
+      ...definesArgs,
+      ...configureArgs,
+      '-G', nmakePath ? 'NMake Makefiles' : 'MinGW Makefiles',
+      `-H.`,
+      '-B',
+      buildDir
+    ]
+    await spawn('emcmake.bat', cmakeArgs, root)
+  } else {
+    const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
+    const cmakeArgs = ['cmake', 
+      ...definesArgs,
+      ...configureArgs,
+      '-G', 'Unix Makefiles',
+      `-H.`,
+      '-B',
+      buildDir
+    ]
+    await spawn('emcmake', cmakeArgs, root)
+  }
+}
+
 async function build (buildDir, buildArgs = []) {
   fs.mkdirSync(buildDir, { recursive: true })
 
@@ -47,6 +66,6 @@ async function build (buildDir, buildArgs = []) {
 
 module.exports = {
   configure,
-  build,
-  rebuild
+  emConfigure,
+  build
 }

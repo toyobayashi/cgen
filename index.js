@@ -55,9 +55,9 @@ function sep (indent = 2) {
   return EOL + (' ').repeat(indent)
 }
 
-function platformTarget (target) {
+function platformTarget (target, isEmscripten) {
   switch (process.platform) {
-    case 'win32': return {
+    case 'win32': return isEmscripten ? null : {
       compileOptions: ['/source-charset:utf-8'],
       defines: ['_CRT_SECURE_NO_WARNINGS', 'UNICODE', '_UNICODE'],
       ...(target.windows || {})
@@ -135,7 +135,7 @@ function cleanBuild (configRoot, buildDirName) {
   if (fs.existsSync(out)) rmSync(out)
 }
 
-function generateCMakeLists (config, configPath) {
+function generateCMakeLists (config, configPath, isEmscripten, isMain) {
   const cmklists = new CMakeLists(path.join(configPath, 'CMakeLists.txt'))
 
   cmklists.writeHeadLine(`cmake_minimum_required(VERSION ${config.minimumVersion || '3.7'})`)
@@ -144,6 +144,31 @@ function generateCMakeLists (config, configPath) {
   cmklists.writeHeadLine(`  cmake_policy(SET CMP0091 NEW)`)
   cmklists.writeHeadLine(`endif()`)
   cmklists.writeHeadLine(`project(${config.project})`)
+
+  if (isEmscripten) {
+    cmklists.writeIncludeLine(`include("${path.relative(configPath, getCMakeInclude('embuild')).replace(/\\/g, '/')}")`)
+    if (isMain) {
+      cmklists.writeLine(`
+if(\${CMAKE_BUILD_TYPE} MATCHES "Debug")
+  foreach(var
+    CMAKE_C_FLAGS_DEBUG
+    CMAKE_CXX_FLAGS_DEBUG
+  )
+    string(REPLACE "-g" "-g4 --source-map-base ./" \${var} "\${\${var}}")
+    message(STATUS "\${var}:\${\${var}}")
+  endforeach()
+else()
+  foreach(var
+    CMAKE_C_FLAGS_RELEASE
+    CMAKE_CXX_FLAGS_RELEASE
+    CMAKE_EXE_LINKER_FLAGS_RELEASE
+  )
+    string(REPLACE "-O2" "-O3" \${var} "\${\${var}}")
+    message(STATUS "\${var}:\${\${var}}")
+  endforeach()
+endif()`)
+    }
+  }
 
   const targets = config.targets
 
@@ -161,14 +186,14 @@ function generateCMakeLists (config, configPath) {
     names.forEach((mod) => {
       const root = findProjectRoot(requireFunction.resolve(mod))
       const conf = loadConfig(root, dependencies[mod] || {})
-      generateCMakeLists(conf, root)
+      generateCMakeLists(conf, root, isEmscripten, false)
       cmklists.writeLine(`cgen_require("${mod}")`)
     })
   }
 
   for (let i = 0; i < targets.length; i++) {
     const target = targets[i]
-    const ostarget = platformTarget(target)
+    const ostarget = platformTarget(target, isEmscripten)
     if (ostarget) {
       mergeTarget(target, ostarget)
     }
@@ -245,6 +270,7 @@ function getCMakeInclude (key) {
   switch (key) {
     case 'vcruntime': return path.join(__dirname, 'cmake/vcruntime.cmake')
     case 'require': return path.join(__dirname, 'cmake/require.cmake')
+    case 'embuild': return path.join(__dirname, 'cmake/embuild.cmake')
     default: return ''
   }
 }
