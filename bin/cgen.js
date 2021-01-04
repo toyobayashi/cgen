@@ -49,8 +49,8 @@ function printHelp () {
 
 async function configure (cliOptions = {}) {
   const root = process.cwd()
-  const config = loadConfig(root)
-  generateCMakeLists(config, root, !!cliOptions.emscripten, true)
+  const config = loadConfig(root, {}, null, false)
+  generateCMakeLists(config, root, {}, !!cliOptions.emscripten, null)
   const cmake = require('./util/cmake.js')
   const promise = cliOptions.emscripten ? cmake.emConfigure(root, path.join(root, buildDir), {
     CMAKE_BUILD_TYPE: (!!cliOptions.debug) ? 'Debug' : 'Release'

@@ -10,6 +10,7 @@
   "author": "toyobayashi",
   "license": "MIT",
   "dependencies": {
+    "chalk": "^4.1.0",
     "minimist": "^1.2.5"
   }
 }

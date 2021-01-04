@@ -1,7 +1,10 @@
 module.exports = () => ({
   "project": "hello",
   "dependencies": {
-    "oid": {}
+    "oid": {
+      "baz": "foo"
+    },
+    "add": {}
   },
   "targets": [
     {
@@ -10,15 +13,7 @@ module.exports = () => ({
       "sources": [
         "./src/main.c"
       ],
-      "libs": ["libhello", "liboid"],
-      "staticVCRuntime": true
-    },
-    {
-      "name": "libhello",
-      "type": "lib",
-      "sources": [
-        "./src/lib.c"
-      ],
+      "libs": ["add", "oid"],
       "staticVCRuntime": true
     }
   ]

@@ -35,7 +35,8 @@ function getDefaultExport (exports) {
   return exports
 }
 
-function loadConfig (root, options = {}) {
+function loadConfig (root, options, parentRootDir, isClean) {
+  options = options || {}
   const json = path.join(root, 'cgen.config.json')
   if (fs.existsSync(json)) {
     return JSON.parse(fs.readFileSync(json, 'utf8'))
@@ -43,7 +44,7 @@ function loadConfig (root, options = {}) {
   const js = path.join(root, 'cgen.config.js')
   const o = getDefaultExport(require(js))
   if (typeof o === 'function') {
-    return o(options)
+    return o(options, parentRootDir, isClean)
   }
   if (typeof o === 'object' && o !== null) {
     return o
@@ -118,15 +119,14 @@ function rmSync (p) {
 }
 
 function cleanBuild (configRoot, buildDirName) {
-  const config = loadConfig(configRoot)
+  const config = loadConfig(configRoot, {}, null, true)
   const dependencies = config.dependencies || {}
   const names = Object.keys(dependencies)
   if (names.length > 0) {
     const requireFunction = createRequire(path.join(configRoot, 'package.json'))
     names.forEach((mod) => {
       const root = findProjectRoot(requireFunction.resolve(mod))
-      // const conf = loadConfig(root)
-      cleanBuild(root, buildDirName)
+      cleanBuild(root, buildDirName, configRoot, true)
     })
   }
   const cmk = path.join(configRoot, 'CMakeLists.txt')
@@ -135,9 +135,24 @@ function cleanBuild (configRoot, buildDirName) {
   if (fs.existsSync(out)) rmSync(out)
 }
 
-function generateCMakeLists (config, configPath, isEmscripten, isMain) {
-  const cmklists = new CMakeLists(path.join(configPath, 'CMakeLists.txt'))
+function generateCMakeLists (config, configPath, options, isEmscripten, parentPath) {
+  const cmklistPath = path.join(configPath, 'CMakeLists.txt')
+  if (fs.existsSync(cmklistPath)) {
+    const o = fs.readFileSync(cmklistPath, 'utf8').split(/\r?\n/)[0].slice(2)
+    if (JSON.stringify(options) === o) {
+      return
+    }
+    const original = JSON.parse(o)
+    options = {
+      ...original,
+      ...options,
+    }
+    console.warn(require('chalk').yellowBright(`Overwrite "${cmklistPath}" with options:${EOL}<<<<<<<${EOL}${JSON.stringify(original, null, 2)}${EOL}=======${EOL}${JSON.stringify(options, null, 2)}${EOL}>>>>>>>`))
+  }
+  const cmklists = new CMakeLists(cmklistPath)
+  const isMain = !parentPath
 
+  cmklists.writeHeadLine(`# ${JSON.stringify(options)}`)
   cmklists.writeHeadLine(`cmake_minimum_required(VERSION ${config.minimumVersion || '3.7'})`)
   
   cmklists.writeHeadLine(`if(\${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.15.0")`)
@@ -145,10 +160,9 @@ function generateCMakeLists (config, configPath, isEmscripten, isMain) {
   cmklists.writeHeadLine(`endif()`)
   cmklists.writeHeadLine(`project(${config.project})`)
 
-  if (isEmscripten) {
+  if (isEmscripten && isMain) {
     cmklists.writeIncludeLine(`include("${path.relative(configPath, getCMakeInclude('embuild')).replace(/\\/g, '/')}")`)
-    if (isMain) {
-      cmklists.writeLine(`
+    cmklists.writeLine(`
 if(\${CMAKE_BUILD_TYPE} MATCHES "Debug")
   foreach(var
     CMAKE_C_FLAGS_DEBUG
@@ -167,7 +181,6 @@ else()
     message(STATUS "\${var}:\${\${var}}")
   endforeach()
 endif()`)
-    }
   }
 
   const targets = config.targets
@@ -178,15 +191,16 @@ endif()`)
   const dependencies = config.dependencies || {}
   const names = Object.keys(dependencies)
   if (names.length > 0) {
-    if (!injectRequireFunction) {
+    if (isMain && !injectRequireFunction) {
       cmklists.writeIncludeLine(`include("${path.relative(configPath, getCMakeInclude('require')).replace(/\\/g, '/')}")`)
       injectRequireFunction = true
     }
     const requireFunction = createRequire(path.join(configPath, 'package.json'))
     names.forEach((mod) => {
       const root = findProjectRoot(requireFunction.resolve(mod))
-      const conf = loadConfig(root, dependencies[mod] || {})
-      generateCMakeLists(conf, root, isEmscripten, false)
+      const options = dependencies[mod] || {}
+      const conf = loadConfig(root, options, configPath, false)
+      generateCMakeLists(conf, root, options, isEmscripten, cmklistPath)
       cmklists.writeLine(`cgen_require("${mod}")`)
     })
   }
@@ -250,7 +264,7 @@ endif()`)
     }
 
     if (!!target.staticVCRuntime) {
-      if (!injectVCRuntimeFunction) {
+      if (isMain && !injectVCRuntimeFunction) {
         cmklists.writeIncludeLine(`include("${path.relative(configPath, getCMakeInclude('vcruntime')).replace(/\\/g, '/')}")`)
         injectVCRuntimeFunction = true
       }
