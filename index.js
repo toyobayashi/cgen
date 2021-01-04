@@ -278,9 +278,19 @@ function resolve (dirname, requireFunction, request) {
   return `${request},${relativeDir}`
 }
 
+function defineObjectConfig (o) {
+  return o
+}
+
+function defineFunctionConfig (f) {
+  return f
+}
+
 exports.generateCMakeLists = generateCMakeLists
 exports.getCMakeInclude = getCMakeInclude
 exports.findProjectRoot = findProjectRoot
 exports.resolve = resolve
 exports.loadConfig = loadConfig
 exports.cleanBuild = cleanBuild
+exports.defineObjectConfig = defineObjectConfig
+exports.defineFunctionConfig = defineFunctionConfig
