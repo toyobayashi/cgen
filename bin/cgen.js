@@ -23,7 +23,7 @@ commandLineParser.addAction(buildAction)
 commandLineParser.addAction(rebuildAction)
 commandLineParser.addAction(cleanAction)
 
-commandLineParser.execute().then(() => {
+commandLineParser.executeWithoutErrorHandling().then(() => {
   // const action = commandLineParser.selectedAction
   // if (!action) {
   //   console.error('Exit: 1')

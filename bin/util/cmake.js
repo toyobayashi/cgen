@@ -12,7 +12,31 @@ function checkCMake () {
 
 checkCMake()
 
+function findvs (msvsver) {
+  return new Promise((resolve, reject) => {
+    require('../../lib/find-visualstudio.js')({
+      major: Number(process.versions.node.split('.')[0])
+    }, msvsver, (err, info) => {
+      if (err) return reject(err)
+      resolve(info)
+    })
+  })
+}
+
 async function configure (root, buildDir, defines = {}, configureArgs = []) {
+  if (process.platform === 'win32') {
+    let info
+    try {
+      info = await findvs('2019')
+    } catch (_) {
+      try {
+        info = await findvs('2017')
+      } catch (_) {
+        throw new Error('Visual Studio 2019 or 2017 is not found')
+      }
+    }
+    // console.log(info)
+  }
   fs.mkdirSync(buildDir, { recursive: true })
 
   const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
