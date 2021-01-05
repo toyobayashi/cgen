@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "typings": "index.d.ts",
+  "engines": {
+    "node": ">= 12.10"
+  },
   "bin": {
     "cgen": "./bin/cgen.js"
   },
