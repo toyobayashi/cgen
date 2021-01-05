@@ -13,22 +13,16 @@ class RebuildAction extends CommandLineAction {
   }
 
   onDefineParameters () {
-    this._debug = this.defineFlagParameter({
-      parameterLongName: '--debug',
-      parameterShortName: '-d',
-      description: 'Set debug mode'
-    })
-
-    this._emscripten = this.defineFlagParameter({
-      parameterLongName: '--emscripten',
-      parameterShortName: '-e',
-      description: 'Use emscripten tool chain'
-    })
+    configureAction.onDefineParameters.call(this)
   }
 
   async onExecute () {
     configureAction._debug = this._debug
     configureAction._emscripten = this._emscripten
+    configureAction._target = this._target
+    configureAction._arch = this._arch
+    configureAction._devdir = this._devdir
+    configureAction._nodedir = this._nodedir
     buildAction._debug = this._debug
     await cleanAction.onExecute()
     await configureAction.onExecute()

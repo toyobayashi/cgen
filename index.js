@@ -139,7 +139,7 @@ function toPathString (str) {
   return `"${str.replace(/\\/g, '/')}"`
 }
 
-function generateCMakeLists (config, configPath, options, isEmscripten, parentPath) {
+function generateCMakeLists (config, configPath, options, isEmscripten, parentPath, nodeConfig) {
   const cmklistPath = path.join(configPath, 'CMakeLists.txt')
   if (fs.existsSync(cmklistPath)) {
     const o = fs.readFileSync(cmklistPath, 'utf8').split(/\r?\n/)[0].slice(2)
@@ -211,7 +211,7 @@ endif()`)
       const root = findProjectRoot(requireFunction.resolve(mod))
       const options = dependencies[mod] || {}
       const conf = loadConfig(root, options, configPath, false)
-      generateCMakeLists(conf, root, options, isEmscripten, cmklistPath)
+      generateCMakeLists(conf, root, options, isEmscripten, cmklistPath, nodeConfig)
       cmklists.writeLine(`cgen_require("${mod}")`)
     })
   }
@@ -248,9 +248,8 @@ endif()`)
         cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES PREFIX "")`)
       }
       cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES SUFFIX ".node")`)
-      const devDir = require('env-paths')('node-gyp', { suffix: '' }).cache
-      const nodeDir = path.join(devDir, process.versions.node)
-      const nodeLibFile = path.join(nodeDir, process.arch, 'node.lib')
+      const devDir = nodeConfig.devdir || require('env-paths')('node-gyp', { suffix: '' }).cache
+      const nodeDir = nodeConfig.nodedir || path.join(devDir, nodeConfig.target || process.versions.node)
 
       target.includePaths = Array.from(new Set([...(target.includePaths || []), ...([
         toPathString(`${nodeDir}/include/node`),
@@ -303,7 +302,7 @@ endif()`)
           'uuid',
           'odbc32',
           'DelayImp',
-          toPathString(nodeLibFile)
+          toPathString(path.join(nodeDir, nodeConfig.arch || process.arch, 'node.lib'))
         ])]))
       } else {
         target.compileOptions = Array.from(new Set([...(target.compileOptions || []), ...([
