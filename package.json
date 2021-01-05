@@ -14,8 +14,8 @@
   "author": "toyobayashi",
   "license": "MIT",
   "dependencies": {
+    "@rushstack/ts-command-line": "^4.7.8",
     "chalk": "^4.1.0",
-    "env-paths": "^2.2.0",
-    "minimist": "^1.2.5"
+    "env-paths": "^2.2.0"
   }
 }
