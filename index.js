@@ -223,6 +223,12 @@ endif()`)
       cmklists.writeLine(`add_library(${target.name} STATIC \${${target.name}_SRC})`)
     } else if (target.type === 'dll') {
       cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC})`)
+      if (!(process.platform === 'win32' && !isEmscripten)) {
+        target.compileOptions = Array.from(new Set([...(target.compileOptions || []), ...([
+          '-fPIC'
+        ])]))
+        cmklists.writeLine(`target_link_options(${target.name} INTERFACE "-Wl,-rpath='$ORIGIN'")`)
+      }
     } else if (target.type === 'node') {
       if (process.platform === 'win32' && !isEmscripten) {
         cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC} "${path.relative(configPath, path.join(__dirname, 'src/win_delay_load_hook.cc')).replace(/\\/g, '/')}")`)
