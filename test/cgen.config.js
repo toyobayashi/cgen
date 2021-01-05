@@ -11,10 +11,20 @@ module.exports = () => ({
       "name": "hello",
       "type": "exe",
       "sources": [
-        "./src/main.c"
+        "./src/main.c",
+        "./src/_main.c"
       ],
       "libs": ["add", "oid"],
       "staticVCRuntime": true
+    },
+    {
+      "name": "test",
+      "type": "node",
+      "sources": [
+        "./src/addon.c",
+        "./src/_main.c"
+      ],
+      "libs": ["add", "oid"]
     }
   ]
 })

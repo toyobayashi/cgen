@@ -135,6 +135,10 @@ function cleanBuild (configRoot, buildDirName) {
   if (fs.existsSync(out)) rmSync(out)
 }
 
+function toPathString (str) {
+  return `"${str.replace(/\\/g, '/')}"`
+}
+
 function generateCMakeLists (config, configPath, options, isEmscripten, parentPath) {
   const cmklistPath = path.join(configPath, 'CMakeLists.txt')
   if (fs.existsSync(cmklistPath)) {
@@ -219,6 +223,76 @@ endif()`)
       cmklists.writeLine(`add_library(${target.name} STATIC \${${target.name}_SRC})`)
     } else if (target.type === 'dll') {
       cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC})`)
+    } else if (target.type === 'node') {
+      if (process.platform === 'win32') {
+        cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC} "${path.relative(configPath, path.join(__dirname, 'src/win_delay_load_hook.cc')).replace(/\\/g, '/')}")`)
+      } else {
+        cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC})`)
+      }
+      cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES SUFFIX ".node")`)
+      const devDir = require('env-paths')('node-gyp', { suffix: '' }).cache
+      const nodeDir = path.join(devDir, process.versions.node)
+      const nodeLibFile = path.join(nodeDir, process.arch, 'node.lib')
+
+      target.includePaths = Array.from(new Set([...(target.includePaths || []), ...([
+        toPathString(`${nodeDir}/include/node`),
+        toPathString(`${nodeDir}/src`),
+        toPathString(`${nodeDir}/deps/openssl/config`),
+        toPathString(`${nodeDir}/deps/openssl/openssl/include`),
+        toPathString(`${nodeDir}/deps/uv/include`),
+        toPathString(`${nodeDir}/deps/zlib`),
+        toPathString(`${nodeDir}/deps/v8/include`)
+      ])]))
+      target.defines = Array.from(new Set([...(target.defines || []), ...([
+        'BUILDING_UV_SHARED=1',
+        'BUILDING_V8_SHARED=1',
+        `NODE_GYP_MODULE_NAME=${target.name}`,
+        'USING_UV_SHARED=1',
+        'USING_V8_SHARED=1',
+        'V8_DEPRECATION_WARNINGS=1',
+        'BUILDING_NODE_EXTENSION',
+        ...(process.platform === 'win32' ? ['HOST_BINARY="node.exe"'] : []),
+        ...(process.platform === 'darwin' ? ['_DARWIN_USE_64_BIT_INODE=1'] : []),
+        ...(process.platform !== 'win32' ? ['_LARGEFILE_SOURCE', '_FILE_OFFSET_BITS=64'] : []),
+      ])]))
+      if (process.platform === 'darwin') {
+        target.linkOptions = Array.from(new Set([...(target.linkOptions || []), ...([
+          '-undefined dynamic_lookup',
+          `-install_name @rpath/${target.name}.node`
+        ])]))
+      }
+      if (process.platform === 'win32') {
+        target.staticVCRuntime = typeof target.staticVCRuntime === 'boolean' ? target.staticVCRuntime : true
+        target.compileOptions = Array.from(new Set([...(target.compileOptions || []), ...([
+          '/GL'
+        ])]))
+        target.linkOptions = Array.from(new Set([...(target.linkOptions || []), ...([
+          '/ignore:4199,4251',
+          `/DELAYLOAD:node.exe`,
+          '/OPT:REF',
+          '/OPT:ICF',
+          '/LTCG:INCREMENTAL'
+        ])]))
+        target.libs = Array.from(new Set([...(target.libs || []), ...([
+          'kernel32',
+          'user32',
+          'gdi32',
+          'winspool',
+          'comdlg32',
+          'advapi32',
+          'shell32',
+          'ole32',
+          'oleaut32',
+          'uuid',
+          'odbc32',
+          'DelayImp',
+          toPathString(nodeLibFile)
+        ])]))
+      } else {
+        target.compileOptions = Array.from(new Set([...(target.compileOptions || []), ...([
+          '-fPIC'
+        ])]))
+      }
     } else {
       continue
     }
