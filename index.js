@@ -223,6 +223,10 @@ endif()`)
       mergeTarget(target, ostarget)
     }
 
+    cmklists.writeLine('')
+    cmklists.writeLine(`# ======= START: ${target.name} =======`)
+    cmklists.writeLine('')
+
     cmklists.writeLine(`file(GLOB_RECURSE ${target.name}_SRC${sep()}${target.sources.map(s => JSON.stringify(s)).join(sep())})`)
     if (target.type === 'exe') {
       cmklists.writeLine(`add_executable(${target.name} \${${target.name}_SRC})`)
@@ -357,6 +361,10 @@ endif()`)
       }
       cmklists.writeLine(`cgen_target_vcrt_mt(${target.name})`)
     }
+
+    cmklists.writeLine('')
+    cmklists.writeLine(`# ======= END: ${target.name} =======`)
+    cmklists.writeLine('')
   }
 
   cmklists.writeLine('')
