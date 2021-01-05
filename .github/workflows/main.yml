@@ -19,13 +19,18 @@ jobs:
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    
+    - name: Install
+    - run: |
+        npm install -g node-gyp@5
+        node-gyp install
+        npm install
+        npm link
 
     - name: Windows test
       if: ${{ matrix.os == 'windows-latest' }}
       shell: cmd
       run: |
-        call npm.cmd install
-        call npm.cmd link
         cd test
         call cgen.cmd rebuild
         node index
@@ -34,8 +39,6 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-latest' }}
       shell: bash
       run: |
-        npm install
-        npm link
         cd ./test
         cgen rebuild
         node index
@@ -44,8 +47,6 @@ jobs:
       if: ${{ matrix.os == 'macos-latest' }}
       shell: bash
       run: |
-        npm install
-        npm link
         cd ./test
         cgen rebuild
         node index
