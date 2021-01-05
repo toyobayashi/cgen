@@ -224,7 +224,7 @@ endif()`)
     } else if (target.type === 'dll') {
       cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC})`)
     } else if (target.type === 'node') {
-      if (process.platform === 'win32') {
+      if (process.platform === 'win32' && !isEmscripten) {
         cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC} "${path.relative(configPath, path.join(__dirname, 'src/win_delay_load_hook.cc')).replace(/\\/g, '/')}")`)
       } else {
         cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC})`)
@@ -252,9 +252,8 @@ endif()`)
         'USING_V8_SHARED=1',
         'V8_DEPRECATION_WARNINGS=1',
         'BUILDING_NODE_EXTENSION',
-        ...(process.platform === 'win32' ? ['HOST_BINARY="node.exe"'] : []),
-        ...(process.platform === 'darwin' ? ['_DARWIN_USE_64_BIT_INODE=1'] : []),
-        ...(process.platform !== 'win32' ? ['_LARGEFILE_SOURCE', '_FILE_OFFSET_BITS=64'] : []),
+        ...((process.platform === 'win32' && !isEmscripten) ? ['HOST_BINARY="node.exe"'] : ['_LARGEFILE_SOURCE', '_FILE_OFFSET_BITS=64']),
+        ...(process.platform === 'darwin' ? ['_DARWIN_USE_64_BIT_INODE=1'] : [])
       ])]))
       if (process.platform === 'darwin') {
         target.linkOptions = Array.from(new Set([...(target.linkOptions || []), ...([
@@ -262,7 +261,7 @@ endif()`)
           `-install_name @rpath/${target.name}.node`
         ])]))
       }
-      if (process.platform === 'win32') {
+      if (process.platform === 'win32' && !isEmscripten) {
         target.staticVCRuntime = typeof target.staticVCRuntime === 'boolean' ? target.staticVCRuntime : true
         target.compileOptions = Array.from(new Set([...(target.compileOptions || []), ...([
           '/GL'
