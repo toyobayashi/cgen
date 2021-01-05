@@ -228,6 +228,7 @@ endif()`)
         cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC} "${path.relative(configPath, path.join(__dirname, 'src/win_delay_load_hook.cc')).replace(/\\/g, '/')}")`)
       } else {
         cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC})`)
+        cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES PREFIX "")`)
       }
       cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES SUFFIX ".node")`)
       const devDir = require('env-paths')('node-gyp', { suffix: '' }).cache
