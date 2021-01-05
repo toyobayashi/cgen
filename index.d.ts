@@ -47,7 +47,8 @@ export declare function generateCMakeLists (
   options: Record<string, any>,
   isEmscripten: boolean,
   parentPath: string | null,
-  nodeConfig: NodeConfig
+  nodeConfig: NodeConfig,
+  defines: Record<string, string>
 ): void;
 export declare function getCMakeInclude (key: 'vcruntime' | 'require'): string;
 export declare function findProjectRoot (start?: string): string;

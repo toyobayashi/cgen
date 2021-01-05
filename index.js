@@ -139,7 +139,39 @@ function toPathString (str) {
   return `"${str.replace(/\\/g, '/')}"`
 }
 
-function generateCMakeLists (config, configPath, options, isEmscripten, parentPath, nodeConfig) {
+/**
+ * @param {any} obj 
+ * @param {Record<string, string>} defines 
+ * @param {Map<object, object>} seen 
+ */
+function e (obj, defines, seen) {
+  seen = seen || new Map()
+  if (typeof obj === 'string') {
+    return obj.replace(/%(\S+?)%/g, (substring, $1) => {
+      if ($1 in defines) {
+        return defines[$1]
+      }
+      return substring
+    })
+  } else if (Array.isArray(obj)) {
+    if (seen.has(obj)) return seen.get(obj)
+    const a = obj.map(s => e(s, defines, seen))
+    seen.set(obj, a)
+    return a
+  } else if (typeof obj === 'object' && obj !== null) {
+    if (seen.has(obj)) return seen.get(obj)
+    const o = {}
+    Object.keys(obj).forEach(k => {
+      o[k] = e(obj[k], defines, seen)
+    })
+    seen.set(obj, o)
+    return o
+  } else {
+    return obj
+  }
+}
+
+function generateCMakeLists (config, configPath, options, isEmscripten, parentPath, nodeConfig, defines) {
   const cmklistPath = path.join(configPath, 'CMakeLists.txt')
   if (fs.existsSync(cmklistPath)) {
     const o = fs.readFileSync(cmklistPath, 'utf8').split(/\r?\n/)[0].slice(2)
@@ -155,10 +187,11 @@ function generateCMakeLists (config, configPath, options, isEmscripten, parentPa
   }
   const cmklists = new CMakeLists(cmklistPath)
   const isMain = !parentPath
+  config = e(config, defines || Object.create(null))
 
   cmklists.writeHeadLine(`# ${JSON.stringify(options)}`)
   cmklists.writeHeadLine(`cmake_minimum_required(VERSION ${config.minimumVersion || '3.9'})`)
-  
+
   cmklists.writeHeadLine(`if(\${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.15.0")`)
   cmklists.writeHeadLine(`  cmake_policy(SET CMP0091 NEW)`)
   cmklists.writeHeadLine(`endif()`)
@@ -211,7 +244,7 @@ endif()`)
       const root = findProjectRoot(requireFunction.resolve(mod))
       const options = dependencies[mod] || {}
       const conf = loadConfig(root, options, configPath, false)
-      generateCMakeLists(conf, root, options, isEmscripten, cmklistPath, nodeConfig)
+      generateCMakeLists(conf, root, options, isEmscripten, cmklistPath, nodeConfig, defines)
       cmklists.writeLine(`cgen_require("${mod}")`)
     })
   }

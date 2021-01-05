@@ -58,6 +58,13 @@ class ConfigureAction extends CommandLineAction {
       defaultValue: process.env.npm_config_nodedir || '',
       environmentVariable: 'NPM_CONFIG_NODEDIR'
     })
+
+    this._defines = this.defineStringListParameter({
+      argumentName: 'DEFINES',
+      parameterLongName: '--define',
+      parameterShortName: '-D',
+      description: 'Define variables'
+    })
   }
 
   onExecute () {
@@ -65,12 +72,27 @@ class ConfigureAction extends CommandLineAction {
     const buildDir = require('../util/cmake.js').buildDir
     const root = process.cwd()
     const config = loadConfig(root, {}, null, false)
+
+    const defines = Object.create(null)
+    this._defines.values.forEach((s) => {
+      const i = s.indexOf('=')
+      let k, v
+      if (i === -1) {
+        k = s
+        v = ''
+      } else {
+        k = s.substring(0, i)
+        v = s.substring(i + 1)
+      }
+      defines[k] = v
+    })
+
     generateCMakeLists(config, root, {}, !!this._emscripten.value, null, {
       target: this._target.value,
       arch: this._arch.value,
       devdir: this._devdir.value,
       nodedir: this._nodedir.value
-    })
+    }, defines)
     const cmake = require('../util/cmake.js')
     const promise = this._emscripten.value ? cmake.emConfigure(root, path.join(root, buildDir), {
       CMAKE_BUILD_TYPE: (!!this._debug.value) ? 'Debug' : 'Release'
