@@ -164,6 +164,10 @@ function generateCMakeLists (config, configPath, options, isEmscripten, parentPa
   cmklists.writeHeadLine(`endif()`)
   cmklists.writeHeadLine(`project(${config.project})`)
 
+  cmklists.writeLine('')
+  cmklists.writeLine('# ======= START =======')
+  cmklists.writeLine('')
+
   if (isEmscripten && isMain) {
     cmklists.writeIncludeLine(`include("${path.relative(configPath, getCMakeInclude('embuild')).replace(/\\/g, '/')}")`)
     cmklists.writeLine(`
@@ -352,6 +356,8 @@ endif()`)
     }
   }
 
+  cmklists.writeLine('')
+  cmklists.writeLine('# ======= END =======')
   cmklists.close()
 
   if (config.postScript) {
