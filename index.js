@@ -257,9 +257,9 @@ endif()`)
       ])]))
       if (process.platform === 'darwin') {
         target.linkOptions = Array.from(new Set([...(target.linkOptions || []), ...([
-          '-undefined dynamic_lookup',
-          `-install_name @rpath/${target.name}.node`
+          '-undefined dynamic_lookup'
         ])]))
+        cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES BUILD_WITH_INSTALL_RPATH 1 INSTALL_NAME_DIR "@rpath")`)
       }
       if (process.platform === 'win32' && !isEmscripten) {
         target.staticVCRuntime = typeof target.staticVCRuntime === 'boolean' ? target.staticVCRuntime : true
