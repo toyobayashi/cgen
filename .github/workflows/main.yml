@@ -1,0 +1,55 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '14.x'
+        registry-url: 'https://registry.npmjs.org'
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: Windows test
+      if: ${{ matrix.os == 'windows-latest' }}
+      shell: cmd
+      run: |
+        call npm.cmd install
+        call npm.cmd link
+        cd test
+        call cgen.cmd rebuild
+        node index
+
+    - name: Linux test
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      shell: bash
+      run: |
+        npm install
+        npm link
+        cd ./test
+        cgen rebuild
+        node index
+
+    - name: macOS test
+      if: ${{ matrix.os == 'macos-latest' }}
+      shell: bash
+      run: |
+        npm install
+        npm link
+        cd ./test
+        cgen rebuild
+        node index
+
+    # - name: Publish
+    #   if: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-latest' }}
+    #   run: npm publish
