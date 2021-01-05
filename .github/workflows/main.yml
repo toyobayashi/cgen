@@ -21,7 +21,7 @@ jobs:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     
     - name: Install
-    - run: |
+      run: |
         npm install -g node-gyp@5
         node-gyp install
         npm install
