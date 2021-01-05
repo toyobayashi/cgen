@@ -16,12 +16,19 @@ class BuildAction extends CommandLineAction {
       parameterShortName: '-d',
       description: 'Set debug config'
     })
+
+    this._builddir = this.defineStringParameter({
+      argumentName: 'BUILDDIR',
+      parameterLongName: '--builddir',
+      parameterShortName: '-B',
+      description: 'Path to the output, must be relative to cwd',
+      defaultValue: '.cgenbuild'
+    })
   }
 
   onExecute () {
     const root = process.cwd()
-    const buildDir = require('../util/cmake.js').buildDir
-    return require('../util/cmake.js').build(path.join(root, buildDir), ['--config', (!!this._debug.value) ? 'Debug' : 'Release'])
+    return require('../util/cmake.js').build(path.join(root, this._builddir.value), ['--config', (!!this._debug.value) ? 'Debug' : 'Release'])
   }
 }
 

@@ -65,11 +65,19 @@ class ConfigureAction extends CommandLineAction {
       parameterShortName: '-D',
       description: 'Define variables'
     })
+
+    this._builddir = this.defineStringParameter({
+      argumentName: 'BUILDDIR',
+      parameterLongName: '--builddir',
+      parameterShortName: '-B',
+      description: 'Path to the output, must be relative to cwd',
+      defaultValue: '.cgenbuild'
+    })
   }
 
   onExecute () {
     const { loadConfig, generateCMakeLists } = require('../..')
-    const buildDir = require('../util/cmake.js').buildDir
+    const buildDir = this._builddir.value
     const root = process.cwd()
     const config = loadConfig(root, {}, null, false)
 

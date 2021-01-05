@@ -93,6 +93,5 @@ async function build (buildDir, buildArgs = []) {
 module.exports = {
   configure,
   emConfigure,
-  build,
-  buildDir: '.cgenbuild'
+  build
 }

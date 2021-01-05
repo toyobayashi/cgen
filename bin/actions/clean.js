@@ -9,10 +9,18 @@ class CleanAction extends CommandLineAction {
     })
   }
 
-  onDefineParameters () {}
+  onDefineParameters () {
+    this._builddir = this.defineStringParameter({
+      argumentName: 'BUILDDIR',
+      parameterLongName: '--builddir',
+      parameterShortName: '-B',
+      description: 'Path to the output, must be relative to cwd',
+      defaultValue: '.cgenbuild'
+    })
+  }
 
   onExecute () {
-    require('../..').cleanBuild(process.cwd(), require('../util/cmake.js').buildDir)
+    require('../..').cleanBuild(process.cwd(), this._builddir.value)
     return Promise.resolve()
   }
 }
