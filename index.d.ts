@@ -2,7 +2,7 @@
 
 export declare interface Target {
   name: string;
-  type: "exe" | "lib" | "dll";
+  type: 'exe' | 'lib' | 'dll' | 'node';
   sources: string[];
 
   cStandard?: string;
@@ -50,7 +50,7 @@ export declare function generateCMakeLists (
   nodeConfig: NodeConfig,
   defines: Record<string, string>
 ): void;
-export declare function getCMakeInclude (key: 'vcruntime' | 'require'): string;
+export declare function getCMakeInclude (key: 'vcruntime' | 'require' | 'embuild'): string;
 export declare function findProjectRoot (start?: string): string;
 export declare function resolve (dirname: string, requireFunction: NodeRequire, request: string): string;
 export declare function loadConfig (root: string, options?: Record<string, any>, parentRootDir: string, isClean: boolean): Configuration;
