@@ -320,7 +320,8 @@ endif()`)
           `/DELAYLOAD:node.exe`,
           '/OPT:REF',
           '/OPT:ICF',
-          '/LTCG:INCREMENTAL'
+          '/LTCG:INCREMENTAL',
+          '/INCREMENTAL:NO'
         ])]))
         target.libs = Array.from(new Set([...(target.libs || []), ...([
           'kernel32',
