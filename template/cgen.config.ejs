@@ -1,0 +1,25 @@
+module.exports = {
+  project: '<%- projectName %>',
+  targets: [
+    {
+      name: '<%- projectName %>',
+      type: '<%- type === "node" ? "node" : "exe" %>',
+      sources: [
+        <%- type === "node" ? "'./src/addon.c'" : "'./src/main.c'" %>
+      ],
+      libs: ['add'],
+      staticVCRuntime: <%- type !== "dll" %>
+    },
+    {
+      name: 'add',
+      type: '<%- type === "dll" ? "dll" : "lib" %>',
+      'sources': [
+        './src/lib.c'
+      ],
+      <% if (type === "dll") { %>
+      defines: ['LIB_BUILD_DLL'],
+      <% } %>
+      staticVCRuntime: <%- type !== "dll" %>
+    }
+  ]
+}

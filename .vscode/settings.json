@@ -1,0 +1,7 @@
+{
+  "files.associations": {
+    "**/template/.vscode/**/*.ejs": "jsonc",
+    "**/template/cgen.config.ejs": "javascript",
+    "**/template/package.ejs": "json"
+  }
+}

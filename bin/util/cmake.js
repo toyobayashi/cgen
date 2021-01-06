@@ -23,19 +23,23 @@ function findvs (msvsver) {
   })
 }
 
+async function getvsinfo () {
+  let info
+  try {
+    info = await findvs('2019')
+  } catch (_) {
+    try {
+      info = await findvs('2017')
+    } catch (_) {
+      throw new Error('Visual Studio 2019 or 2017 is not found')
+    }
+  }
+  return info
+} 
+
 async function configure (root, buildDir, defines = {}, configureArgs = []) {
   if (process.platform === 'win32') {
-    let info
-    try {
-      info = await findvs('2019')
-    } catch (_) {
-      try {
-        info = await findvs('2017')
-      } catch (_) {
-        throw new Error('Visual Studio 2019 or 2017 is not found')
-      }
-    }
-    // console.log(info)
+    await getvsinfo()
   }
   fs.mkdirSync(buildDir, { recursive: true })
 
@@ -117,5 +121,6 @@ async function build (buildDir, buildArgs = []) {
 module.exports = {
   configure,
   emConfigure,
-  build
+  build,
+  getvsinfo
 }

@@ -8,6 +8,7 @@ if (command === '-v' || command === '--version' || command === '-V') {
 }
 
 const { DynamicCommandLineParser } = require('@rushstack/ts-command-line')
+const initAction = require('./actions/init.js')
 const configureAction = require('./actions/configure.js')
 const buildAction = require('./actions/build.js')
 const rebuildAction = require('./actions/rebuild.js')
@@ -18,6 +19,7 @@ const commandLineParser = new DynamicCommandLineParser({
   toolDescription: `[v${require('../package.json').version}] Node.js CLI tool for generate C/C++ project`
 })
 
+commandLineParser.addAction(initAction)
 commandLineParser.addAction(configureAction)
 commandLineParser.addAction(buildAction)
 commandLineParser.addAction(rebuildAction)
