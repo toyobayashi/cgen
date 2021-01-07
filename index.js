@@ -271,7 +271,7 @@ endif()`)
       ])]))
       if (process.platform === 'darwin') {
         target.linkOptions = Array.from(new Set([...(target.linkOptions || []), ...([
-          '-undefined dynamic_lookup'
+          '-undefined', 'dynamic_lookup'
         ])]))
         cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES BUILD_WITH_INSTALL_NAME_DIR 1 INSTALL_NAME_DIR "@rpath")`)
       }
