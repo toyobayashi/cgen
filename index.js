@@ -8,7 +8,8 @@ const { EOL } = require('os')
 
 const createRequire = Module.createRequire || Module.createRequireFromPath
 
-const { CMakeLists } = require('./lib/CMakeLists')
+const { CMakeLists } = require('./lib/CMakeLists.js')
+const { platformTarget, mergeOSTarget, mergeDefaultTarget } = require('./lib/merge.js')
 
 function isString (o) {
   return typeof o === 'string'
@@ -56,60 +57,6 @@ function sep (indent = 2) {
   return EOL + (' ').repeat(indent)
 }
 
-function platformTarget (target, isEmscripten) {
-  switch (process.platform) {
-    case 'win32': return isEmscripten ? null : {
-      compileOptions: ['/source-charset:utf-8'],
-      defines: ['_CRT_SECURE_NO_WARNINGS', 'UNICODE', '_UNICODE'],
-      ...(target.windows || {})
-    }
-    case 'linux': return target.linux || null
-    case 'darwin': return target.macos || null
-    default: return null
-  }
-}
-
-function mergeValue (target, ostarget, key) {
-  if (Object.prototype.hasOwnProperty.call(ostarget, key)) {
-    target[key] = ostarget[key]
-  }
-}
-
-function mergeArray (target, ostarget, key) {
-  if (Object.prototype.hasOwnProperty.call(ostarget, key)) {
-    target[key] = Array.from(new Set([...(target[key] || []), ...(ostarget[key] || [])]))
-  }
-}
-
-function mergeObject (target, ostarget, key) {
-  if (Object.prototype.hasOwnProperty.call(ostarget, key)) {
-    target[key] = {
-      ...(target[key] || {}),
-      ...(ostarget[key] || {})
-    }
-  }
-}
-
-function mergeTarget (target, ostarget) {
-  mergeValue(target, ostarget, 'name')
-  mergeValue(target, ostarget, 'type')
-  mergeArray(target, ostarget, 'sources')
-  mergeValue(target, ostarget, 'cStandard')
-  mergeValue(target, ostarget, 'cxxStandard')
-  mergeArray(target, ostarget, 'compileOptions')
-  mergeArray(target, ostarget, 'linkOptions')
-
-  mergeArray(target, ostarget, 'defines')
-  mergeArray(target, ostarget, 'publicDefines')
-  mergeArray(target, ostarget, 'includePaths')
-  mergeArray(target, ostarget, 'publicIncludePaths')
-  mergeArray(target, ostarget, 'libPaths')
-  mergeArray(target, ostarget, 'libs')
-  mergeValue(target, ostarget, 'staticVCRuntime')
-
-  return target
-}
-
 function rmSync (p) {
   if (typeof fs.rmSync === 'function') {
     fs.rmSync(p, { recursive: true, force: true })
@@ -135,8 +82,8 @@ function cleanBuild (configRoot, buildDirName) {
   if (fs.existsSync(out)) rmSync(out)
 }
 
-function toPathString (str) {
-  return `"${str.replace(/\\/g, '/')}"`
+function q (str) {
+  return `"${str.replace(/\\/g, '/').replace(/"/g, '\\"')}"`
 }
 
 /**
@@ -149,7 +96,11 @@ function e (obj, defines, seen) {
   if (typeof obj === 'string') {
     return obj.replace(/%(\S+?)%/g, (substring, $1) => {
       if ($1 in defines) {
-        return defines[$1]
+        try {
+          return defines[$1].toString()
+        } catch (_) {
+          return String(defines[$1])
+        }
       }
       return substring
     })
@@ -187,7 +138,13 @@ function generateCMakeLists (config, configPath, options, isEmscripten, parentPa
   }
   const cmklists = new CMakeLists(cmklistPath)
   const isMain = !parentPath
-  config = e(config, defines || Object.create(null))
+
+  const mergedDefines = {
+    ...(config.variables || {}),
+    ...(defines || {})
+  }
+  Object.setPrototypeOf(mergedDefines, null)
+  config = e(config, mergedDefines)
 
   cmklists.writeHeadLine(`# ${JSON.stringify(options)}`)
   if (isMain) {
@@ -207,7 +164,7 @@ function generateCMakeLists (config, configPath, options, isEmscripten, parentPa
   cmklists.writeLine('')
 
   if (isEmscripten && isMain) {
-    cmklists.writeIncludeLine(`include("${path.relative(configPath, getCMakeInclude('embuild')).replace(/\\/g, '/')}")`)
+    cmklists.writeIncludeLine(`include(${q(path.relative(configPath, getCMakeInclude('embuild')))})`)
     cmklists.writeLine(`
 if(\${CMAKE_BUILD_TYPE} MATCHES "Debug")
   foreach(var
@@ -238,7 +195,7 @@ endif()`)
   const names = Object.keys(dependencies)
   if (names.length > 0) {
     if (isMain && !injectRequireFunction) {
-      cmklists.writeIncludeLine(`include("${path.relative(configPath, getCMakeInclude('require')).replace(/\\/g, '/')}")`)
+      cmklists.writeIncludeLine(`include(${q(path.relative(configPath, getCMakeInclude('require')))})`)
       injectRequireFunction = true
     }
     const requireFunction = createRequire(path.join(configPath, 'package.json'))
@@ -247,22 +204,25 @@ endif()`)
       const options = dependencies[mod] || {}
       const conf = loadConfig(root, options, configPath, false)
       generateCMakeLists(conf, root, options, isEmscripten, cmklistPath, nodeConfig, defines)
-      cmklists.writeLine(`cgen_require("${mod}")`)
+      cmklists.writeLine(`cgen_require(${q(mod)})`)
     })
   }
+
+  const targetDefault = config.targetDefault || {}
 
   for (let i = 0; i < targets.length; i++) {
     const target = targets[i]
     const ostarget = platformTarget(target, isEmscripten)
     if (ostarget) {
-      mergeTarget(target, ostarget)
+      mergeDefaultTarget(target, targetDefault, isEmscripten)
+      mergeOSTarget(target, ostarget)
     }
 
     cmklists.writeLine('')
     cmklists.writeLine(`# ======= START: ${target.name} =======`)
     cmklists.writeLine('')
 
-    cmklists.writeLine(`file(GLOB_RECURSE ${target.name}_SRC${sep()}${target.sources.map(s => JSON.stringify(s)).join(sep())})`)
+    cmklists.writeLine(`file(GLOB_RECURSE ${target.name}_SRC${sep()}${target.sources.map(s => q(s)).join(sep())})`)
     if (target.type === 'exe') {
       cmklists.writeLine(`add_executable(${target.name} \${${target.name}_SRC})`)
     } else if (target.type === 'lib') {
@@ -273,11 +233,14 @@ endif()`)
         target.compileOptions = Array.from(new Set([...(target.compileOptions || []), ...([
           '-fPIC'
         ])]))
-        cmklists.writeLine(`target_link_options(${target.name} INTERFACE "-Wl,-rpath='$ORIGIN'")`)
+        target.interfaceLinkOptions = Array.from(new Set([...(target.interfaceLinkOptions || []), ...([
+          "-Wl,-rpath='$ORIGIN'"
+        ])]))
+        // cmklists.writeLine(`target_link_options(${target.name} INTERFACE "-Wl,-rpath='$ORIGIN'")`)
       }
     } else if (target.type === 'node') {
       if (process.platform === 'win32' && !isEmscripten) {
-        cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC} "${path.relative(configPath, path.join(__dirname, 'src/win_delay_load_hook.cc')).replace(/\\/g, '/')}")`)
+        cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC} ${q(path.relative(configPath, path.join(__dirname, 'src/win_delay_load_hook.cc')))})`)
       } else {
         cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC})`)
         cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES PREFIX "")`)
@@ -287,13 +250,13 @@ endif()`)
       const nodeDir = nodeConfig.nodedir || path.join(devDir, nodeConfig.target || process.versions.node)
 
       target.includePaths = Array.from(new Set([...(target.includePaths || []), ...([
-        toPathString(`${nodeDir}/include/node`),
-        toPathString(`${nodeDir}/src`),
-        toPathString(`${nodeDir}/deps/openssl/config`),
-        toPathString(`${nodeDir}/deps/openssl/openssl/include`),
-        toPathString(`${nodeDir}/deps/uv/include`),
-        toPathString(`${nodeDir}/deps/zlib`),
-        toPathString(`${nodeDir}/deps/v8/include`)
+        `${nodeDir}/include/node`,
+        `${nodeDir}/src`,
+        `${nodeDir}/deps/openssl/config`,
+        `${nodeDir}/deps/openssl/openssl/include`,
+        `${nodeDir}/deps/uv/include`,
+        `${nodeDir}/deps/zlib`,
+        `${nodeDir}/deps/v8/include`
       ])]))
       target.defines = Array.from(new Set([...(target.defines || []), ...([
         'BUILDING_UV_SHARED=1',
@@ -338,7 +301,7 @@ endif()`)
           'uuid',
           'odbc32',
           'DelayImp',
-          toPathString(path.join(nodeDir, nodeConfig.arch || process.arch, 'node.lib'))
+          path.join(nodeDir, nodeConfig.arch || process.arch, 'node.lib')
         ])]))
       } else {
         target.compileOptions = Array.from(new Set([...(target.compileOptions || []), ...([
@@ -358,40 +321,72 @@ endif()`)
 
     const defines = target.defines || []
     if (defines.length > 0) {
-      cmklists.writeLine(`target_compile_definitions(${target.name} PRIVATE${sep()}${defines.map(v => v.replace(/"/g, '\\"')).join(sep())})`)
+      cmklists.writeLine(`target_compile_definitions(${target.name} PRIVATE${sep()}${defines.map(v => q(v)).join(sep())})`)
+    }
+    const interfaceDefines = target.interfaceDefines || []
+    if (interfaceDefines.length > 0) {
+      cmklists.writeLine(`target_compile_definitions(${target.name} INTERFACE${sep()}${interfaceDefines.map(v => q(v)).join(sep())})`)
     }
     const publicDefines = target.publicDefines || []
     if (publicDefines.length > 0) {
-      cmklists.writeLine(`target_compile_definitions(${target.name} PUBLIC${sep()}${publicDefines.map(v => v.replace(/"/g, '\\"')).join(sep())})`)
+      cmklists.writeLine(`target_compile_definitions(${target.name} PUBLIC${sep()}${publicDefines.map(v => q(v)).join(sep())})`)
     }
     const includePaths = target.includePaths || []
     if (includePaths.length > 0) {
-      cmklists.writeLine(`target_include_directories(${target.name} PRIVATE${sep()}${includePaths.join(sep())})`)
+      cmklists.writeLine(`target_include_directories(${target.name} PRIVATE${sep()}${includePaths.map(v => q(v)).join(sep())})`)
+    }
+    const interfaceIncludePaths = target.interfaceIncludePaths || []
+    if (interfaceIncludePaths.length > 0) {
+      cmklists.writeLine(`target_include_directories(${target.name} INTERFACE${sep()}${interfaceIncludePaths.map(v => q(v)).join(sep())})`)
     }
     const publicIncludePaths = target.publicIncludePaths || []
     if (publicIncludePaths.length > 0) {
-      cmklists.writeLine(`target_include_directories(${target.name} PUBLIC${sep()}${publicIncludePaths.join(sep())})`)
+      cmklists.writeLine(`target_include_directories(${target.name} PUBLIC${sep()}${publicIncludePaths.map(v => q(v)).join(sep())})`)
     }
     const libPaths = target.libPaths || []
     if (libPaths.length > 0) {
-      cmklists.writeLine(`target_link_directories(${target.name} PRIVATE${sep()}${libPaths.join(sep())})`)
+      cmklists.writeLine(`target_link_directories(${target.name} PRIVATE${sep()}${libPaths.map(v => q(v)).join(sep())})`)
+    }
+    const interfaceLibPaths = target.interfaceLibPaths || []
+    if (interfaceLibPaths.length > 0) {
+      cmklists.writeLine(`target_link_directories(${target.name} INTERFACE${sep()}${interfaceLibPaths.map(v => q(v)).join(sep())})`)
+    }
+    const publicLibPaths = target.publicLibPaths || []
+    if (publicLibPaths.length > 0) {
+      cmklists.writeLine(`target_link_directories(${target.name} PUBLIC${sep()}${publicLibPaths.map(v => q(v)).join(sep())})`)
     }
     const libs = target.libs || []
     if (libs.length > 0) {
-      cmklists.writeLine(`target_link_libraries(${target.name}${sep()}${libs.join(sep())})`)
+      cmklists.writeLine(`target_link_libraries(${target.name}${sep()}${libs.map(v => q(v)).join(sep())})`)
     }
     const compileOptions = target.compileOptions || []
     if (compileOptions.length > 0) {
-      cmklists.writeLine(`target_compile_options(${target.name} PRIVATE${sep()}${compileOptions.join(sep())})`)
+      cmklists.writeLine(`target_compile_options(${target.name} PRIVATE${sep()}${compileOptions.map(v => q(v)).join(sep())})`)
+    }
+    const interfaceCompileOptions = target.interfaceCompileOptions || []
+    if (interfaceCompileOptions.length > 0) {
+      cmklists.writeLine(`target_compile_options(${target.name} INTERFACE${sep()}${interfaceCompileOptions.map(v => q(v)).join(sep())})`)
+    }
+    const publicCompileOptions = target.publicCompileOptions || []
+    if (publicCompileOptions.length > 0) {
+      cmklists.writeLine(`target_compile_options(${target.name} PUBLIC${sep()}${publicCompileOptions.map(v => q(v)).join(sep())})`)
     }
     const linkOptions = target.linkOptions || []
     if (linkOptions.length > 0) {
-      cmklists.writeLine(`target_link_options(${target.name} PRIVATE${sep()}${linkOptions.join(sep())})`)
+      cmklists.writeLine(`target_link_options(${target.name} PRIVATE${sep()}${linkOptions.map(v => q(v)).join(sep())})`)
+    }
+    const interfaceLinkOptions = target.interfaceLinkOptions || []
+    if (interfaceLinkOptions.length > 0) {
+      cmklists.writeLine(`target_link_options(${target.name} INTERFACE${sep()}${interfaceLinkOptions.map(v => q(v)).join(sep())})`)
+    }
+    const publicLinkOptions = target.publicLinkOptions || []
+    if (publicLinkOptions.length > 0) {
+      cmklists.writeLine(`target_link_options(${target.name} PUBLIC${sep()}${publicLinkOptions.map(v => q(v)).join(sep())})`)
     }
 
     if (!!target.staticVCRuntime) {
       if (isMain && !injectVCRuntimeFunction) {
-        cmklists.writeIncludeLine(`include("${path.relative(configPath, getCMakeInclude('vcruntime')).replace(/\\/g, '/')}")`)
+        cmklists.writeIncludeLine(`include(${q(path.relative(configPath, getCMakeInclude('vcruntime')))})`)
         injectVCRuntimeFunction = true
       }
       cmklists.writeLine(`cgen_target_vcrt_mt(${target.name})`)

@@ -7,14 +7,27 @@ export declare interface Target {
 
   cStandard?: string;
   cxxStandard?: string;
+
   linkOptions?: string[];
+  interfaceLinkOptions?: string[];
+  publicLinkOptions?: string[];
+
   compileOptions?: string[];
+  interfaceCompileOptions?: string[];
+  publicCompileOptions?: string[];
 
   defines?: string[];
+  interfaceDefines?: string[];
   publicDefines?: string[];
+
   includePaths?: string[];
+  interfaceIncludePaths?: string[];
   publicIncludePaths?: string[];
+
   libPaths?: string[];
+  interfaceLibPaths?: string[];
+  publicLibPaths?: string[];
+
   libs?: string[];
 
   staticVCRuntime?: boolean;
@@ -29,6 +42,8 @@ export declare interface Configuration {
   targets: Target[];
   minimumVersion?: string;
   postScript?: string;
+  variables?: Record<string, string | number | boolean>;
+  targetDefault?: Partial<Omit<Target, 'name' | 'type'>>;
   dependencies?: Record<string, Record<string, any>>
 }
 
