@@ -247,7 +247,12 @@ endif()`)
       } else {
         cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC})`)
       }
-      cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES PREFIX "" SUFFIX ".node")`)
+      target.properties = {
+        ...(target.properties || {}),
+        PREFIX: '',
+        SUFFIX: '.node'
+      }
+
       const devDir = nodeConfig.devdir || require('env-paths')('node-gyp', { suffix: '' }).cache
       const nodeDir = nodeConfig.nodedir || path.join(devDir, nodeConfig.target || process.versions.node)
 
@@ -275,7 +280,11 @@ endif()`)
         target.linkOptions = Array.from(new Set([...(target.linkOptions || []), ...([
           '-undefined', 'dynamic_lookup'
         ])]))
-        cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES BUILD_WITH_INSTALL_NAME_DIR 1 INSTALL_NAME_DIR "@rpath")`)
+        target.properties = {
+          ...(target.properties || {}),
+          BUILD_WITH_INSTALL_NAME_DIR: '1',
+          INSTALL_NAME_DIR: '@rpath'
+        }
       }
       if (process.platform === 'win32' && !isEmscripten) {
         target.staticVCRuntime = typeof target.staticVCRuntime === 'boolean' ? target.staticVCRuntime : true
