@@ -121,6 +121,8 @@ function toCMakeArch (nodeArch) {
   switch (nodeArch) {
     case 'x64': return 'x64'
     case 'ia32': return 'Win32'
+    case 'arm': return 'ARM'
+    case 'arm64': return 'ARM64'
     default: throw new Error(`Unsupported arch: ${nodeArch}`) 
   }
 }
