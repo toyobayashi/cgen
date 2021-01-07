@@ -11,10 +11,6 @@ const createRequire = Module.createRequire || Module.createRequireFromPath
 const { CMakeLists } = require('./lib/CMakeLists.js')
 const { platformTarget, mergeOSTarget, mergeDefaultTarget } = require('./lib/merge.js')
 
-function isString (o) {
-  return typeof o === 'string'
-}
-
 const configFiles = [
   'cgen.config.json',
   'cgen.config.js'
@@ -86,6 +82,19 @@ function q (str) {
   return `"${str.replace(/\\/g, '/').replace(/"/g, '\\"')}"`
 }
 
+function createReplacer (defines) {
+  return (substring, $1) => {
+    if ($1 in defines) {
+      try {
+        return defines[$1].toString()
+      } catch (_) {
+        return String(defines[$1])
+      }
+    }
+    return substring
+  }
+}
+
 /**
  * @param {any} obj 
  * @param {Record<string, string>} defines 
@@ -94,16 +103,7 @@ function q (str) {
 function e (obj, defines, seen) {
   seen = seen || new Map()
   if (typeof obj === 'string') {
-    return obj.replace(/%(\S+?)%/g, (substring, $1) => {
-      if ($1 in defines) {
-        try {
-          return defines[$1].toString()
-        } catch (_) {
-          return String(defines[$1])
-        }
-      }
-      return substring
-    })
+    return obj.replace(/%(\S+?)%/g, createReplacer(defines))
   } else if (Array.isArray(obj)) {
     if (seen.has(obj)) return seen.get(obj)
     const a = obj.map(s => e(s, defines, seen))
@@ -112,8 +112,10 @@ function e (obj, defines, seen) {
   } else if (typeof obj === 'object' && obj !== null) {
     if (seen.has(obj)) return seen.get(obj)
     const o = {}
+    const replacer = createReplacer(defines)
     Object.keys(obj).forEach(k => {
-      o[k] = e(obj[k], defines, seen)
+      const replacedKey = k.replace(/%(\S+?)%/g, replacer)
+      o[replacedKey] = e(obj[k], defines, seen)
     })
     seen.set(obj, o)
     return o
@@ -323,11 +325,14 @@ endif()`)
       continue
     }
 
-    if (isString(target.cStandard)) {
-      cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES C_STANDARD ${target.cStandard})`)
-    }
-    if (isString(target.cxxStandard)) {
-      cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES CXX_STANDARD ${target.cxxStandard})`)
+    const properties = target.properties || Object.create(null)
+    const pkeys = Object.keys(properties)
+    const parr = []
+    if (pkeys.length > 0) {
+      pkeys.forEach(k => {
+        parr.push([k, properties[k]])
+      })
+      cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES${sep()}${parr.map(pair => `${pair[0]} ${q(pair[1])}`).join(sep())})`)
     }
 
     const defines = target.defines || []

@@ -7,9 +7,7 @@ export declare interface Target {
 
   nodeAddonApi?: boolean;
   napiVersion?: string;
-
-  cStandard?: string;
-  cxxStandard?: string;
+  properties?: Record<string, string>;
 
   linkOptions?: string[];
   interfaceLinkOptions?: string[];
