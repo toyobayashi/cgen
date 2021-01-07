@@ -29,17 +29,22 @@ class InitAction extends CommandLineAction {
       throw new Error('Should specify project path')
     }
     const toDir = path.resolve(this._remainder.values[0])
-    const info = await require('../util/cmake.js').getvsinfo()
-    const vspath = info.path
-    const winsdkver = info.sdk
-    const ls = fs.readdirSync(path.join(vspath, 'VC/Tools/MSVC'))
-    const clpath = path.join(vspath, 'VC/Tools/MSVC', ls[ls.length - 1], `bin/${process.arch === 'x64' ? 'Hostx64' : 'Hostx86'}/x64/cl.exe`)
-    const data = {
+    let data = {
       projectName: 'cgendemo',
-      clPath: clpath.replace(/\\/g, '\\\\'),
-      windowsSdkVersion: winsdkver,
       type: this._type.value,
-      wslProjectRoot: process.platform === 'win32' ? `/mnt/${toDir.charAt(0).toLowerCase()}${toDir.substring(2).replace(/\\/g, '/')}` : ''
+      clPath: '',
+      windowsSdkVersion: '',
+      wslProjectRoot: ''
+    }
+    if (process.platform === 'win32') {
+      const info = await require('../util/cmake.js').getvsinfo()
+      const vspath = info.path
+      const winsdkver = info.sdk
+      const ls = fs.readdirSync(path.join(vspath, 'VC/Tools/MSVC'))
+      const clpath = path.join(vspath, 'VC/Tools/MSVC', ls[ls.length - 1], `bin/${process.arch === 'x64' ? 'Hostx64' : 'Hostx86'}/x64/cl.exe`)
+      data.clPath = clpath.replace(/\\/g, '\\\\')
+      data.windowsSdkVersion = winsdkver
+      data.wslProjectRoot = `/mnt/${toDir.charAt(0).toLowerCase()}${toDir.substring(2).replace(/\\/g, '/')}`
     }
     await copyTemplate('package.ejs', 'package.json', toDir, data)
     await copyTemplate('cgen.config.ejs', 'cgen.config.js', toDir, data)
