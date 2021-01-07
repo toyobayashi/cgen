@@ -25,6 +25,15 @@ module.exports = () => ({
         "./src/_main.c"
       ],
       "libs": ["add", "oid"]
+    },
+    {
+      "name": "test2",
+      "type": "node",
+      "sources": [
+        "./src/addon.cpp",
+      ],
+      "nodeAddonApi": true,
+      "libs": ["add"]
     }
   ]
 })

@@ -5,6 +5,9 @@ export declare interface Target {
   type: 'exe' | 'lib' | 'dll' | 'node';
   sources: string[];
 
+  nodeAddonApi?: boolean;
+  napiVersion?: string;
+
   cStandard?: string;
   cxxStandard?: string;
 
@@ -65,7 +68,7 @@ export declare function generateCMakeLists (
   nodeConfig: NodeConfig,
   defines: Record<string, string>
 ): void;
-export declare function getCMakeInclude (key: 'vcruntime' | 'require' | 'embuild'): string;
+export declare function getCMakeInclude (key: 'vcruntime' | 'require' | 'embuild' | 'napi'): string;
 export declare function findProjectRoot (start?: string): string;
 export declare function resolve (dirname: string, requireFunction: NodeRequire, request: string): string;
 export declare function loadConfig (root: string, options?: Record<string, any>, parentRootDir: string, isClean: boolean): Configuration;

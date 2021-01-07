@@ -190,6 +190,7 @@ endif()`)
 
   let injectVCRuntimeFunction = false
   let injectRequireFunction = false
+  let injectNapiFunction = false
 
   const dependencies = config.dependencies || {}
   const names = Object.keys(dependencies)
@@ -243,9 +244,8 @@ endif()`)
         cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC} ${q(path.relative(configPath, path.join(__dirname, 'src/win_delay_load_hook.cc')))})`)
       } else {
         cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC})`)
-        cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES PREFIX "")`)
       }
-      cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES SUFFIX ".node")`)
+      cmklists.writeLine(`set_target_properties(${target.name} PROPERTIES PREFIX "" SUFFIX ".node")`)
       const devDir = nodeConfig.devdir || require('env-paths')('node-gyp', { suffix: '' }).cache
       const nodeDir = nodeConfig.nodedir || path.join(devDir, nodeConfig.target || process.versions.node)
 
@@ -307,6 +307,17 @@ endif()`)
         target.compileOptions = Array.from(new Set([...(target.compileOptions || []), ...([
           '-fPIC'
         ])]))
+      }
+      if (target.nodeAddonApi) {
+        if (isMain && !injectNapiFunction) {
+          cmklists.writeIncludeLine(`include(${q(path.relative(configPath, getCMakeInclude('napi')))})`)
+          injectNapiFunction = true
+        }
+        if (target.napiVersion) {
+          cmklists.writeLine(`cgen_napi(${target.name} ${target.napiVersion})`)
+        } else {
+          cmklists.writeLine(`cgen_napi(${target.name})`)
+        }
       }
     } else {
       continue
@@ -412,6 +423,7 @@ function getCMakeInclude (key) {
     case 'vcruntime': return path.join(__dirname, 'cmake/vcruntime.cmake')
     case 'require': return path.join(__dirname, 'cmake/require.cmake')
     case 'embuild': return path.join(__dirname, 'cmake/embuild.cmake')
+    case 'napi': return path.join(__dirname, 'cmake/napi.cmake')
     default: return ''
   }
 }
