@@ -103,8 +103,12 @@ class ConfigureAction extends CommandLineAction {
     }, defines)
     const cmake = require('../util/cmake.js')
     const promise = this._emscripten.value ? cmake.emConfigure(root, path.join(root, buildDir), {
+      CMAKE_C_STANDARD: '99',
+      CMAKE_CXX_STANDARD: '11',
       CMAKE_BUILD_TYPE: (!!this._debug.value) ? 'Debug' : 'Release'
     }) : cmake.configure(root, path.join(root, buildDir), {
+      CMAKE_C_STANDARD: '99',
+      CMAKE_CXX_STANDARD: '11',
       ...((!!this._debug.value) ? { CMAKE_BUILD_TYPE: 'Debug' } : { CMAKE_BUILD_TYPE: 'Release' })
     }, process.platform === 'win32' ? [
       '-A', toCMakeArch(this._arch.value)
