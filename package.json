@@ -16,6 +16,9 @@
     "type": "git",
     "url": "git+https://github.com/toyobayashi/cgen.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "homepage": "https://github.com/toyobayashi/cgen#readme",
   "license": "MIT",
   "dependencies": {
