@@ -51,6 +51,6 @@ jobs:
         cgen rebuild
         node index
 
-    # - name: Publish
-    #   if: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-latest' }}
-    #   run: npm publish
+    - name: Publish
+      if: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-latest' }}
+      run: npm publish

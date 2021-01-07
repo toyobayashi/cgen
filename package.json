@@ -1,6 +1,6 @@
 {
   "name": "@tybys/cgen",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "",
   "main": "index.js",
   "typings": "index.d.ts",
@@ -12,6 +12,11 @@
   },
   "keywords": [],
   "author": "toyobayashi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toyobayashi/cgen.git"
+  },
+  "homepage": "https://github.com/toyobayashi/cgen#readme",
   "license": "MIT",
   "dependencies": {
     "@rushstack/ts-command-line": "^4.7.8",
