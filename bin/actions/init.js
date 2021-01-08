@@ -29,8 +29,11 @@ class InitAction extends CommandLineAction {
       throw new Error('Should specify project path')
     }
     const toDir = path.resolve(this._remainder.values[0])
+    if (fs.existsSync(toDir)) {
+      throw new Error(`Path exists: ${toDir}`)
+    }
     let data = {
-      projectName: 'cgendemo',
+      projectName: path.basename(toDir),
       type: this._type.value,
       clPath: '',
       windowsSdkVersion: '',
