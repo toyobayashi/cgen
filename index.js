@@ -32,7 +32,7 @@ function getDefaultExport (exports) {
   return exports
 }
 
-function loadConfig (root, options, parentRootDir, isClean) {
+function loadConfig (root, options, env) {
   options = options || {}
   const json = path.join(root, 'cgen.config.json')
   if (fs.existsSync(json)) {
@@ -41,7 +41,7 @@ function loadConfig (root, options, parentRootDir, isClean) {
   const js = path.join(root, 'cgen.config.js')
   const o = getDefaultExport(require(js))
   if (typeof o === 'function') {
-    return o(options, parentRootDir, isClean)
+    return o(options, env)
   }
   if (typeof o === 'object' && o !== null) {
     return o
@@ -61,15 +61,19 @@ function rmSync (p) {
   }
 }
 
-function cleanBuild (configRoot, buildDirName) {
-  const config = loadConfig(configRoot, {}, null, true)
+function cleanBuild (configRoot, buildDirName, parentRootDir = null) {
+  const config = loadConfig(configRoot, {}, {
+    parentRootDir: parentRootDir || null,
+    isClean: true,
+    isDebug: false
+  })
   const dependencies = config.dependencies || {}
   const names = Object.keys(dependencies)
   if (names.length > 0) {
     const requireFunction = createRequire(path.join(configRoot, 'package.json'))
     names.forEach((mod) => {
       const root = findProjectRoot(requireFunction.resolve(mod))
-      cleanBuild(root, buildDirName, configRoot, true)
+      cleanBuild(root, buildDirName, configRoot)
     })
   }
   const cmk = path.join(configRoot, 'CMakeLists.txt')
@@ -124,7 +128,7 @@ function e (obj, defines, seen) {
   }
 }
 
-function generateCMakeLists (config, configPath, options, isEmscripten, parentPath, nodeConfig, defines) {
+function generateCMakeLists (config, configPath, options, isEmscripten, parentPath, nodeConfig, defines, isDebug) {
   const cmklistPath = path.join(configPath, 'CMakeLists.txt')
   if (fs.existsSync(cmklistPath)) {
     const o = fs.readFileSync(cmklistPath, 'utf8').split(/\r?\n/)[0].slice(2)
@@ -205,8 +209,12 @@ endif()`)
     names.forEach((mod) => {
       const root = findProjectRoot(requireFunction.resolve(mod))
       const options = dependencies[mod] || {}
-      const conf = loadConfig(root, options, configPath, false)
-      generateCMakeLists(conf, root, options, isEmscripten, cmklistPath, nodeConfig, defines)
+      const conf = loadConfig(root, options, {
+        parentRootDir: configPath || null,
+        isClean: false,
+        isDebug: !!isDebug
+      })
+      generateCMakeLists(conf, root, options, isEmscripten, cmklistPath, nodeConfig, defines, isDebug)
       cmklists.writeLine(`cgen_require(${q(mod)})`)
     })
   }

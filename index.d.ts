@@ -48,7 +48,13 @@ export declare interface Configuration {
   dependencies?: Record<string, Record<string, any>>
 }
 
-export declare type FunctionConfiguration<O = any> = (options: O, parentRootDir: string, isClean: boolean) => Configuration;
+export declare interface Environment {
+  parentRootDir: string | null;
+  isClean: boolean;
+  isDebug: boolean;
+}
+
+export declare type FunctionConfiguration<O = any> = (options: O, env: Environment) => Configuration;
 
 export declare interface NodeConfig {
   target?: string;
@@ -69,7 +75,7 @@ export declare function generateCMakeLists (
 export declare function getCMakeInclude (key: 'vcruntime' | 'require' | 'embuild' | 'napi'): string;
 export declare function findProjectRoot (start?: string): string;
 export declare function resolve (dirname: string, requireFunction: NodeRequire, request: string): string;
-export declare function loadConfig (root: string, options?: Record<string, any>, parentRootDir: string, isClean: boolean): Configuration;
-export declare function cleanBuild (configRoot: string, buildDirName: string): void;
+export declare function loadConfig (root: string, options: Record<string, any>, env: Environment): Configuration;
+export declare function cleanBuild (configRoot: string, buildDirName: string, parentRootDir?: string | null): void;
 export declare function defineObjectConfig (config: Configuration): Configuration;
 export declare function defineFunctionConfig<O = any> (config: FunctionConfiguration<O>): FunctionConfiguration<O>;

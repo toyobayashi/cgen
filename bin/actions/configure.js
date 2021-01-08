@@ -79,7 +79,11 @@ class ConfigureAction extends CommandLineAction {
     const { loadConfig, generateCMakeLists } = require('../..')
     const buildDir = this._builddir.value
     const root = process.cwd()
-    const config = loadConfig(root, {}, null, false)
+    const config = loadConfig(root, {}, {
+      parentRootDir: null,
+      isClean: false,
+      isDebug: !!this._debug.value
+    })
 
     const defines = Object.create(null)
     this._defines.values.forEach((s) => {
@@ -100,7 +104,7 @@ class ConfigureAction extends CommandLineAction {
       arch: this._arch.value,
       devdir: this._devdir.value,
       nodedir: this._nodedir.value
-    }, defines)
+    }, defines, !!this._debug.value)
     const cmake = require('../util/cmake.js')
     const promise = this._emscripten.value ? cmake.emConfigure(root, path.join(root, buildDir), {
       CMAKE_C_STANDARD: '99',
