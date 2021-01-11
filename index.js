@@ -86,6 +86,24 @@ function q (str) {
   return `"${str.replace(/\\/g, '/').replace(/"/g, '\\"')}"`
 }
 
+function isAbsolute (p) {
+  return path.isAbsolute(p) || /\$\{CMAKE_[A-Z]+?_DIR\}/.test(p)
+}
+
+function abs (p) {
+  if (isAbsolute(p)) {
+    return q(p)
+  }
+  return q(path.posix.join('${CMAKE_CURRENT_SOURCE_DIR}', p))
+}
+
+function getLib (p) {
+  if (p.charAt(0) === '.') {
+    return q(path.posix.join('${CMAKE_CURRENT_SOURCE_DIR}', p))
+  }
+  return q(p)
+}
+
 function createReplacer (defines) {
   return (substring, $1) => {
     if ($1 in defines) {
@@ -366,31 +384,31 @@ endif()`)
     }
     const includePaths = target.includePaths || []
     if (includePaths.length > 0) {
-      cmklists.writeLine(`target_include_directories(${target.name} PRIVATE${sep()}${includePaths.map(v => q(v)).join(sep())})`)
+      cmklists.writeLine(`target_include_directories(${target.name} PRIVATE${sep()}${includePaths.map(v => abs(v)).join(sep())})`)
     }
     const interfaceIncludePaths = target.interfaceIncludePaths || []
     if (interfaceIncludePaths.length > 0) {
-      cmklists.writeLine(`target_include_directories(${target.name} INTERFACE${sep()}${interfaceIncludePaths.map(v => q(v)).join(sep())})`)
+      cmklists.writeLine(`target_include_directories(${target.name} INTERFACE${sep()}${interfaceIncludePaths.map(v => abs(v)).join(sep())})`)
     }
     const publicIncludePaths = target.publicIncludePaths || []
     if (publicIncludePaths.length > 0) {
-      cmklists.writeLine(`target_include_directories(${target.name} PUBLIC${sep()}${publicIncludePaths.map(v => q(v)).join(sep())})`)
+      cmklists.writeLine(`target_include_directories(${target.name} PUBLIC${sep()}${publicIncludePaths.map(v => abs(v)).join(sep())})`)
     }
     const libPaths = target.libPaths || []
     if (libPaths.length > 0) {
-      cmklists.writeLine(`target_link_directories(${target.name} PRIVATE${sep()}${libPaths.map(v => q(v)).join(sep())})`)
+      cmklists.writeLine(`target_link_directories(${target.name} PRIVATE${sep()}${libPaths.map(v => abs(v)).join(sep())})`)
     }
     const interfaceLibPaths = target.interfaceLibPaths || []
     if (interfaceLibPaths.length > 0) {
-      cmklists.writeLine(`target_link_directories(${target.name} INTERFACE${sep()}${interfaceLibPaths.map(v => q(v)).join(sep())})`)
+      cmklists.writeLine(`target_link_directories(${target.name} INTERFACE${sep()}${interfaceLibPaths.map(v => abs(v)).join(sep())})`)
     }
     const publicLibPaths = target.publicLibPaths || []
     if (publicLibPaths.length > 0) {
-      cmklists.writeLine(`target_link_directories(${target.name} PUBLIC${sep()}${publicLibPaths.map(v => q(v)).join(sep())})`)
+      cmklists.writeLine(`target_link_directories(${target.name} PUBLIC${sep()}${publicLibPaths.map(v => abs(v)).join(sep())})`)
     }
     const libs = target.libs || []
     if (libs.length > 0) {
-      cmklists.writeLine(`target_link_libraries(${target.name}${sep()}${libs.map(v => q(v)).join(sep())})`)
+      cmklists.writeLine(`target_link_libraries(${target.name}${sep()}${libs.map(v => getLib(v)).join(sep())})`)
     }
     const compileOptions = target.compileOptions || []
     if (compileOptions.length > 0) {
@@ -416,7 +434,7 @@ endif()`)
     if (publicLinkOptions.length > 0) {
       cmklists.writeLine(`target_link_options(${target.name} PUBLIC${sep()}${publicLinkOptions.map(v => q(v)).join(sep())})`)
     }
-    const wrapScript = target.wrapScript ? (path.isAbsolute(target.wrapScript) ? target.wrapScript : path.join(configPath, target.wrapScript)) : ''
+    const wrapScript = target.wrapScript ? (isAbsolute(target.wrapScript) ? target.wrapScript : path.posix.join('${CMAKE_CURRENT_SOURCE_DIR}', target.wrapScript)) : ''
     if (isEmscripten && (('wrapScript' in target) || wrapScript)) {
       cmklists.writeLine(`add_custom_command(
   TARGET ${target.name}
