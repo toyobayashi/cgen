@@ -1,6 +1,6 @@
 {
   "name": "@tybys/cgen",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "",
   "main": "index.js",
   "typings": "index.d.ts",
@@ -25,6 +25,7 @@
     "@rushstack/ts-command-line": "^4.7.8",
     "chalk": "^4.1.0",
     "ejs": "^3.1.5",
-    "env-paths": "^2.2.0"
+    "env-paths": "^2.2.0",
+    "terser": "^5.5.1"
   }
 }

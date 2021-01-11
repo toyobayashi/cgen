@@ -172,7 +172,7 @@ function generateCMakeLists (config, configPath, options, isEmscripten, parentPa
   if (isEmscripten && isMain) {
     cmklists.writeIncludeLine(`include(${q(path.relative(configPath, getCMakeInclude('embuild')))})`)
     cmklists.writeLine(`
-if(\${CMAKE_BUILD_TYPE} MATCHES "Debug")
+if("\${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   foreach(var
     CMAKE_C_FLAGS_DEBUG
     CMAKE_CXX_FLAGS_DEBUG
@@ -416,8 +416,17 @@ endif()`)
     if (publicLinkOptions.length > 0) {
       cmklists.writeLine(`target_link_options(${target.name} PUBLIC${sep()}${publicLinkOptions.map(v => q(v)).join(sep())})`)
     }
+    const wrapScript = target.wrapScript ? (path.isAbsolute(target.wrapScript) ? target.wrapScript : path.join(configPath, target.wrapScript)) : ''
+    if (isEmscripten && (('wrapScript' in target) || wrapScript)) {
+      cmklists.writeLine(`add_custom_command(
+  TARGET ${target.name}
+  POST_BUILD
+  COMMAND node -e "require('${__filename.replace(/\\/g, '/')}').emwrap(require('path').join('\${CMAKE_CURRENT_BINARY_DIR}', '${target.name}.js'), '${target.name}', '${wrapScript.replace(/\\/g, '/')}', ${isDebug ? 'false' : 'true'})"
+  WORKING_DIRECTORY \${CMAKE_CURRENT_SOURCE_DIR}
+)`)
+    }
 
-    if (!!target.staticVCRuntime) {
+    if (!!target.staticVCRuntime && !isEmscripten) {
       if (isMain && !injectVCRuntimeFunction) {
         cmklists.writeIncludeLine(`include(${q(path.relative(configPath, getCMakeInclude('vcruntime')))})`)
         injectVCRuntimeFunction = true
@@ -495,3 +504,4 @@ exports.loadConfig = loadConfig
 exports.cleanBuild = cleanBuild
 exports.defineObjectConfig = defineObjectConfig
 exports.defineFunctionConfig = defineFunctionConfig
+exports.emwrap = require('./lib/emwrap.js').emwrap

@@ -33,6 +33,8 @@ export declare interface Target {
 
   staticVCRuntime?: boolean;
 
+  wrapScript?: string;
+
   windows?: Partial<Omit<Target, 'windows' | 'linux' | 'macos'>>;
   linux?: Partial<Omit<Target, 'windows' | 'linux' | 'macos'>>;
   macos?: Partial<Omit<Target, 'windows' | 'linux' | 'macos'>>;
@@ -79,3 +81,4 @@ export declare function loadConfig (root: string, options: Record<string, any>, 
 export declare function cleanBuild (configRoot: string, buildDirName: string, parentRootDir?: string | null): void;
 export declare function defineObjectConfig (config: Configuration): Configuration;
 export declare function defineFunctionConfig<O = any> (config: FunctionConfiguration<O>): FunctionConfiguration<O>;
+export declare function emwrap (filePath: string, libName: string, exportFile: string, minify: boolean): Promise<void>;
