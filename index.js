@@ -72,8 +72,10 @@ function cleanBuild (configRoot, buildDirName, parentRootDir = null) {
   if (names.length > 0) {
     const requireFunction = createRequire(path.join(configRoot, 'package.json'))
     names.forEach((mod) => {
-      const root = findProjectRoot(requireFunction.resolve(mod))
-      cleanBuild(root, buildDirName, configRoot)
+      try {
+        const root = findProjectRoot(requireFunction.resolve(mod))
+        cleanBuild(root, buildDirName, configRoot)
+      } catch (_) {}
     })
   }
   const cmk = path.join(configRoot, 'CMakeLists.txt')
@@ -225,15 +227,19 @@ endif()`)
     }
     const requireFunction = createRequire(path.join(configPath, 'package.json'))
     names.forEach((mod) => {
-      const root = findProjectRoot(requireFunction.resolve(mod))
-      const options = dependencies[mod] || {}
-      const conf = loadConfig(root, options, {
-        parentRootDir: configPath || null,
-        isClean: false,
-        isDebug: !!isDebug
-      })
-      generateCMakeLists(conf, root, options, isEmscripten, cmklistPath, nodeConfig, defines, isDebug)
-      cmklists.writeLine(`cgen_require(${q(mod)})`)
+      if (path.isAbsolute(mod) || mod.charAt(0) === '.') {
+        cmklists.writeLine(`cgen_require(${q(mod)})`)
+      } else {
+        const root = findProjectRoot(requireFunction.resolve(mod))
+        const options = dependencies[mod] || {}
+        const conf = loadConfig(root, options, {
+          parentRootDir: configPath || null,
+          isClean: false,
+          isDebug: !!isDebug
+        })
+        generateCMakeLists(conf, root, options, isEmscripten, cmklistPath, nodeConfig, defines, isDebug)
+        cmklists.writeLine(`cgen_require(${q(mod)})`)
+      }
     })
   }
 
