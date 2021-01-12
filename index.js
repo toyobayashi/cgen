@@ -445,7 +445,7 @@ endif()`)
       cmklists.writeLine(`add_custom_command(
   TARGET ${target.name}
   POST_BUILD
-  COMMAND node -e "require('${__filename.replace(/\\/g, '/')}').emwrap(require('path').join('\${CMAKE_CURRENT_BINARY_DIR}', '${target.name}.js'), '${target.name}', '${wrapScript.replace(/\\/g, '/')}', ${isDebug ? 'false' : 'true'})"
+  COMMAND node -e "\\"require('${__filename.replace(/\\/g, '/')}').emwrap(require('path').join('\${CMAKE_CURRENT_BINARY_DIR}','${target.name}.js'),'${target.name}','${wrapScript.replace(/\\/g,'/')}',${isDebug ? 'false' : 'true'})\\""
   WORKING_DIRECTORY \${CMAKE_CURRENT_SOURCE_DIR}
 )`)
     }
