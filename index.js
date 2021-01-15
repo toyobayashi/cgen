@@ -191,7 +191,7 @@ function generateCMakeLists (config, configPath, options, isEmscripten, parentPa
 
   if (isEmscripten && isMain) {
     cmklists.writeIncludeLine(`include(${q(path.relative(configPath, getCMakeInclude('embuild')))})`)
-    cmklists.writeLine(`
+    /* cmklists.writeLine(`
 if("\${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   foreach(var
     CMAKE_C_FLAGS_DEBUG
@@ -209,7 +209,7 @@ else()
     string(REPLACE "-O2" "-O3" \${var} "\${\${var}}")
     message(STATUS "\${var}:\${\${var}}")
   endforeach()
-endif()`)
+endif()`) */
   }
 
   const targets = config.targets
