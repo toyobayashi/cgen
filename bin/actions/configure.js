@@ -88,20 +88,20 @@ class ConfigureAction extends CommandLineAction {
 
     const defines = Object.create(null)
     const globalOptions = Object.create(null)
-    const parseFunction = (map) => (s) => {
+    const parseFunction = (map, defaultValue) => (s) => {
       const i = s.indexOf('=')
       let k, v
       if (i === -1) {
         k = s
-        v = ''
+        v = defaultValue
       } else {
         k = s.substring(0, i)
         v = s.substring(i + 1)
       }
       map[k] = v
     }
-    this._defines.values.forEach(parseFunction(defines))
-    this._options.values.forEach(parseFunction(globalOptions))
+    this._defines.values.forEach(parseFunction(defines, ''))
+    this._options.values.forEach(parseFunction(globalOptions, true))
 
     const config = loadConfig(root, globalOptions, {
       parentRootDir: null,
