@@ -44,7 +44,6 @@ class ConfigureAction extends CommandLineAction {
     this._devdir = this.defineStringParameter({
       argumentName: 'DEVDIR',
       parameterLongName: '--devdir',
-      parameterShortName: '-s',
       description: 'Node sdk root directory',
       defaultValue: process.env.npm_config_devdir || require('env-paths')('node-gyp', { suffix: '' }).cache,
       environmentVariable: 'NPM_CONFIG_DEVDIR'
@@ -66,6 +65,13 @@ class ConfigureAction extends CommandLineAction {
       description: 'Define variables'
     })
 
+    this._options = this.defineStringListParameter({
+      argumentName: 'OPTIONS',
+      parameterLongName: '--option',
+      parameterShortName: '-s',
+      description: 'Define global options'
+    })
+
     this._builddir = this.defineStringParameter({
       argumentName: 'BUILDDIR',
       parameterLongName: '--builddir',
@@ -79,14 +85,10 @@ class ConfigureAction extends CommandLineAction {
     const { loadConfig, generateCMakeLists } = require('../..')
     const buildDir = this._builddir.value
     const root = process.cwd()
-    const config = loadConfig(root, {}, {
-      parentRootDir: null,
-      isClean: false,
-      isDebug: !!this._debug.value
-    })
 
     const defines = Object.create(null)
-    this._defines.values.forEach((s) => {
+    const globalOptions = Object.create(null)
+    const parseFunction = (map) => (s) => {
       const i = s.indexOf('=')
       let k, v
       if (i === -1) {
@@ -96,10 +98,18 @@ class ConfigureAction extends CommandLineAction {
         k = s.substring(0, i)
         v = s.substring(i + 1)
       }
-      defines[k] = v
+      map[k] = v
+    }
+    this._defines.values.forEach(parseFunction(defines))
+    this._options.values.forEach(parseFunction(globalOptions))
+
+    const config = loadConfig(root, globalOptions, {
+      parentRootDir: null,
+      isClean: false,
+      isDebug: !!this._debug.value
     })
 
-    generateCMakeLists(config, root, {}, !!this._emscripten.value, null, {
+    generateCMakeLists(config, root, globalOptions, {}, !!this._emscripten.value, null, {
       target: this._target.value,
       arch: this._arch.value,
       devdir: this._devdir.value,

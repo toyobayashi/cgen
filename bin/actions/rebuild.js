@@ -24,6 +24,7 @@ class RebuildAction extends CommandLineAction {
     configureAction._devdir = this._devdir
     configureAction._nodedir = this._nodedir
     configureAction._defines = this._defines
+    configureAction._options = this._options
     configureAction._builddir = this._builddir
     buildAction._debug = this._debug
     buildAction._builddir = this._builddir

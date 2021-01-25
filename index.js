@@ -99,6 +99,13 @@ function abs (p) {
   return q(path.posix.join('${CMAKE_CURRENT_SOURCE_DIR}', p))
 }
 
+function p (s, c = process.cwd()) {
+  if (path.isAbsolute(s)) {
+    return s
+  }
+  return path.join(c, s)
+}
+
 function getLib (p) {
   if (p.charAt(0) === '.') {
     return q(path.posix.join('${CMAKE_CURRENT_SOURCE_DIR}', p))
@@ -148,17 +155,19 @@ function e (obj, defines, seen) {
   }
 }
 
-function generateCMakeLists (config, configPath, options, isEmscripten, parentPath, nodeConfig, defines, isDebug) {
+function generateCMakeLists (config, configPath, globalOptions, options, isEmscripten, parentPath, nodeConfig, defines, isDebug) {
+  const merge = require('deepmerge')
   const cmklistPath = path.join(configPath, 'CMakeLists.txt')
+  let _options = merge(globalOptions, options)
   if (fs.existsSync(cmklistPath)) {
     const o = fs.readFileSync(cmklistPath, 'utf8').split(/\r?\n/)[0].slice(2)
-    if (JSON.stringify(options) === o) {
+    if (JSON.stringify(_options) === o) {
       return
     }
     const original = JSON.parse(o)
-    options = {
+    _options = {
       ...original,
-      ...options,
+      ..._options
     }
     console.warn(require('chalk').yellowBright(`Overwrite "${cmklistPath}" with options:${EOL}<<<<<<<${EOL}${JSON.stringify(original, null, 2)}${EOL}=======${EOL}${JSON.stringify(options, null, 2)}${EOL}>>>>>>>`))
   }
@@ -172,7 +181,7 @@ function generateCMakeLists (config, configPath, options, isEmscripten, parentPa
   Object.setPrototypeOf(mergedDefines, null)
   config = e(config, mergedDefines)
 
-  cmklists.writeHeadLine(`# ${JSON.stringify(options)}`)
+  cmklists.writeHeadLine(`# ${JSON.stringify(_options)}`)
   if (isMain) {
     cmklists.writeHeadLine(`cmake_minimum_required(VERSION ${config.minimumVersion || '3.9'})`)
 
@@ -226,19 +235,29 @@ endif()`) */
       injectRequireFunction = true
     }
     const requireFunction = createRequire(path.join(configPath, 'package.json'))
+    const _require = (root, mod) => {
+      const localOptions = dependencies[mod] || {}
+      const mergedOptions = merge(globalOptions, localOptions)
+      const conf = loadConfig(root, mergedOptions, {
+        parentRootDir: configPath || null,
+        isClean: false,
+        isDebug: !!isDebug
+      })
+      generateCMakeLists(conf, root, globalOptions, localOptions, isEmscripten, cmklistPath, nodeConfig, defines, isDebug)
+      cmklists.writeLine(`cgen_require(${q(mod)})`)
+    }
     names.forEach((mod) => {
+      let root
       if (path.isAbsolute(mod) || mod.charAt(0) === '.') {
-        cmklists.writeLine(`cgen_require(${q(mod)})`)
+        root = p(mod, configPath)
+        if (fs.existsSync(p('CMakeLists.txt', root))) {
+          cmklists.writeLine(`cgen_require(${q(mod)})`)
+        } else {
+          _require(root, mod)
+        }
       } else {
-        const root = findProjectRoot(requireFunction.resolve(mod))
-        const options = dependencies[mod] || {}
-        const conf = loadConfig(root, options, {
-          parentRootDir: configPath || null,
-          isClean: false,
-          isDebug: !!isDebug
-        })
-        generateCMakeLists(conf, root, options, isEmscripten, cmklistPath, nodeConfig, defines, isDebug)
-        cmklists.writeLine(`cgen_require(${q(mod)})`)
+        root = findProjectRoot(requireFunction.resolve(mod))
+        _require(root, mod)
       }
     })
   }
