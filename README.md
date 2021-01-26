@@ -8,13 +8,13 @@ Node.js CLI tool based on CMake for generating C/C++ project.
 
 * CMake >= 3.9
 
-* Non-Windows: gcc / clang, make
+* Non-Windows: gcc / clang, gdb / lldb, make
 
 * Windows: Visual Studio 2017+ & [Desktop development with C++] workload
 
 * Building webassembly
 
-  * emsdk, `$EMSDK` system environment variable
+  * emsdk, `$EMSDK` system environment variable set to emsdk root path
   
   * Emscripten 2.x
   
@@ -31,10 +31,24 @@ cd ./demo
 cgen rebuild
 ```
 
+Install in local project:
+
+```bash
+npm install -D @tybys/cgen
+# Additionally if use TypeScript
+# npm install -D @types/node
+```
+
 Configuration example:
 
 ```js
 // cgen.config.js
+
+// for TypeScript intellisense
+// const { defineFunctionConfig, defineObjectConfig } = require('@tybys/cgen')
+// module.exports = defineObjectConfig({ ... })
+// module.exports = defineFunctionConfig(function (options, ctx) { ... })
+
 module.exports = function (options, { isDebug }) {
   return {
     project: 'example',
@@ -66,6 +80,90 @@ module.exports = function (options, { isDebug }) {
 ```
 
 Build command example: `cgen rebuild -sDLL -sMT --debug`
+
+WebAssembly example:
+
+```js
+// cgen.config.js
+module.exports = function (_options, { isDebug }) {
+  const debugFlags = [
+    '-sDISABLE_EXCEPTION_CATCHING=0',
+    '-sSAFE_HEAP=1'
+  ]
+
+  const commonFlags = [
+    '--bind',
+    '-sALLOW_MEMORY_GROWTH=1',
+    ...(isDebug ? debugFlags : [])
+  ]
+
+  return {
+    project: 'example',
+    targets: [
+      {
+        name: 'mywasm',
+        type: 'exe',
+        sources: [
+          './src/*.cpp'
+        ],
+        wrapScript: './export.js', // compatible webpack
+        compileOptions: [...commonFlags],
+        linkOptions: [...commonFlags]
+      }
+    ]
+  }
+}
+```
+
+```js
+/**
+ * export.js
+ * 
+ * Run only once after wasm loaded succesfully
+ * 
+ * typeof require === 'undefined'
+ * exports.__esModule === true
+ * typeof exports.default === 'function'
+ * typeof module === 'undefined'
+ * typeof Module === 'object'
+ */
+
+exports.myfunction = Module.myfunction
+```
+
+Build command: `cgen rebuild --emscripten` or `cgen rebuild -e`
+
+Use webassembly:
+
+```html
+<script src="./.cgenbuild/mywasm.js"></script>
+<script>
+  window.mywasm.default().then(function (Module) {
+    Module.myfunction();
+  });
+</script>
+```
+
+or with bundler
+
+```js
+import init from './.cgenbuild/mywasm.js'
+// const init = require('./.cgenbuild/mywasm.js').default
+init().then((Module) => { Module.myfunction() })
+```
+
+or
+
+```js
+import init, { myfunction } from './.cgenbuild/mywasm.js'
+
+// typeof myfunction === 'undefined'
+init().then((Module) => {
+  // typeof myfunction === 'function'
+  // myfunction === Module.myfunction
+  myfunction()
+})
+```
 
 See more help: `cgen -h` or `cgen <command> -h`
 
