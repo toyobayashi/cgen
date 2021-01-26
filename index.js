@@ -155,7 +155,17 @@ function e (obj, defines, seen) {
   }
 }
 
-function generateCMakeLists (config, configPath, globalOptions, options, isEmscripten, parentPath, nodeConfig, defines, isDebug) {
+function generateCMakeLists ({
+  config = {},
+  configPath = '',
+  globalOptions = {},
+  options = {},
+  isEmscripten = false,
+  parentPath = null,
+  nodeConfig = {},
+  defines = {},
+  isDebug = false
+} = {}) {
   const merge = require('deepmerge')
   const cmklistPath = path.join(configPath, 'CMakeLists.txt')
   let _options = merge(globalOptions, options)
@@ -243,7 +253,18 @@ endif()`) */
         isClean: false,
         isDebug: !!isDebug
       })
-      generateCMakeLists(conf, root, globalOptions, localOptions, isEmscripten, cmklistPath, nodeConfig, defines, isDebug)
+
+      generateCMakeLists({
+        config: conf,
+        configPath: root, 
+        globalOptions: globalOptions,
+        options: localOptions,
+        isEmscripten: isEmscripten,
+        parentPath: cmklistPath,
+        nodeConfig: nodeConfig,
+        defines: defines,
+        isDebug: isDebug
+      })
       cmklists.writeLine(`cgen_require(${q(mod)})`)
     }
     names.forEach((mod) => {
@@ -487,7 +508,7 @@ endif()`) */
   cmklists.close()
 
   if (config.postScript) {
-    const mod = require(path.join(configPath, config.postScript))
+    const mod = require(p(config.postScript, configPath))
     getDefaultExport(mod)(fs.readFileSync(cmklists.path, 'utf8'), cmklists.path)
   }
 }

@@ -108,13 +108,23 @@ class ConfigureAction extends CommandLineAction {
       isClean: false,
       isDebug: !!this._debug.value
     })
-
-    generateCMakeLists(config, root, globalOptions, {}, !!this._emscripten.value, null, {
-      target: this._target.value,
-      arch: this._arch.value,
-      devdir: this._devdir.value,
-      nodedir: this._nodedir.value
-    }, defines, !!this._debug.value)
+    
+    generateCMakeLists({
+      config: config,
+      configPath: root, 
+      globalOptions: globalOptions,
+      options: {},
+      isEmscripten: !!this._emscripten.value,
+      parentPath: null,
+      nodeConfig: {
+        target: this._target.value,
+        arch: this._arch.value,
+        devdir: this._devdir.value,
+        nodedir: this._nodedir.value
+      },
+      defines: defines,
+      isDebug: !!this._debug.value
+    })
     const cmake = require('../util/cmake.js')
     const promise = this._emscripten.value ? cmake.emConfigure(root, path.join(root, buildDir), {
       CMAKE_C_STANDARD: '99',

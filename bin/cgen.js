@@ -16,7 +16,7 @@ const cleanAction = require('./actions/clean.js')
 
 const commandLineParser = new DynamicCommandLineParser({
   toolFilename: 'cgen',
-  toolDescription: `[v${require('../package.json').version}] Node.js CLI tool for generate C/C++ project`
+  toolDescription: `[v${require('../package.json').version}] ${require('../package.json').description}`
 })
 
 commandLineParser.addAction(initAction)
