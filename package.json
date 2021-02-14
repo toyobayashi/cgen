@@ -1,6 +1,6 @@
 {
   "name": "@tybys/cgen",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Node.js CLI tool based on CMake for generating C/C++ project",
   "main": "index.js",
   "typings": "index.d.ts",
