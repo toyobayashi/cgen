@@ -133,7 +133,8 @@ class ConfigureAction extends CommandLineAction {
     }) : cmake.configure(root, path.join(root, buildDir), {
       CMAKE_C_STANDARD: '99',
       CMAKE_CXX_STANDARD: '11',
-      CMAKE_BUILD_RPATH_USE_ORIGIN: 'TRUE',
+      // CMAKE_VERBOSE_MAKEFILE: '1',
+      // CMAKE_BUILD_RPATH_USE_ORIGIN: 'TRUE',
       ...((!!this._debug.value) ? { CMAKE_BUILD_TYPE: 'Debug' } : { CMAKE_BUILD_TYPE: 'Release' })
     }, process.platform === 'win32' ? [
       '-A', toCMakeArch(this._arch.value)

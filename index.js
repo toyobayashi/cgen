@@ -193,7 +193,7 @@ function generateCMakeLists ({
 
   cmklists.writeHeadLine(`# ${JSON.stringify(_options)}`)
   if (isMain) {
-    cmklists.writeHeadLine(`cmake_minimum_required(VERSION ${config.minimumVersion || '3.14'})`)
+    cmklists.writeHeadLine(`cmake_minimum_required(VERSION ${config.minimumVersion || '3.9'})`)
 
     cmklists.writeHeadLine(`if(\${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.15.0")`)
     cmklists.writeHeadLine(`  cmake_policy(SET CMP0091 NEW)`)
@@ -316,6 +316,10 @@ endif()`) */
     cmklists.writeLine(`file(GLOB_RECURSE ${target.name}_SRC${sep()}${target.sources.map(s => q(s)).join(sep())})`)
     if (target.type === 'exe') {
       cmklists.writeLine(`add_executable(${target.name} \${${target.name}_SRC})`)
+      target.properties = {
+        BUILD_RPATH: '$ORIGIN',
+        ...(target.properties || {}),
+      }
     } else if (target.type === 'lib') {
       cmklists.writeLine(`add_library(${target.name} STATIC \${${target.name}_SRC})`)
     } else if (target.type === 'dll') {
@@ -324,10 +328,10 @@ endif()`) */
         target.compileOptions = Array.from(new Set([...(target.compileOptions || []), ...([
           '-fPIC'
         ])]))
-        // target.interfaceLinkOptions = Array.from(new Set([...(target.interfaceLinkOptions || []), ...([
-        //   "-Wl,-rpath='$ORIGIN'"
-        // ])]))
-        // cmklists.writeLine(`target_link_options(${target.name} INTERFACE "-Wl,-rpath='$ORIGIN'")`)
+        target.properties = {
+          BUILD_RPATH: '$ORIGIN',
+          ...(target.properties || {}),
+        }
       }
     } else if (target.type === 'node') {
       if (process.platform === 'win32' && !isEmscripten) {
@@ -336,6 +340,7 @@ endif()`) */
         cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC})`)
       }
       target.properties = {
+        BUILD_RPATH: '$ORIGIN',
         ...(target.properties || {}),
         PREFIX: '',
         SUFFIX: '.node'
