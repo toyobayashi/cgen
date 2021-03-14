@@ -178,10 +178,10 @@ export declare interface Target {
   name: string;
 
   /** Build target type */
-  type: 'exe' | 'lib' | 'dll' | 'node';
+  type: 'exe' | 'lib' | 'dll' | 'node' | 'interface';
 
   /** Glob patterns */
-  sources: string[];
+  sources?: string[];
 
   /** Whether to use node-addon-api */
   nodeAddonApi?: boolean;

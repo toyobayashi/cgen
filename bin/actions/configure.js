@@ -65,6 +65,13 @@ class ConfigureAction extends CommandLineAction {
       description: 'Define variables'
     })
 
+    this._cmakeDefines = this.defineStringListParameter({
+      argumentName: 'CMAKEDEF',
+      parameterLongName: '--cmkdef',
+      parameterShortName: '-C',
+      description: 'Define cmake variables'
+    })
+
     this._options = this.defineStringListParameter({
       argumentName: 'OPTIONS',
       parameterLongName: '--option',
@@ -87,6 +94,7 @@ class ConfigureAction extends CommandLineAction {
     const root = process.cwd()
 
     const defines = Object.create(null)
+    const cmakeDefines = Object.create(null)
     const globalOptions = Object.create(null)
     const parseFunction = (map, defaultValue) => (s) => {
       const i = s.indexOf('=')
@@ -101,6 +109,7 @@ class ConfigureAction extends CommandLineAction {
       map[k] = v
     }
     this._defines.values.forEach(parseFunction(defines, ''))
+    this._cmakeDefines.values.forEach(parseFunction(cmakeDefines, ''))
     this._options.values.forEach(parseFunction(globalOptions, true))
 
     const config = loadConfig(root, globalOptions, {
@@ -129,13 +138,15 @@ class ConfigureAction extends CommandLineAction {
     const promise = this._emscripten.value ? cmake.emConfigure(root, path.join(root, buildDir), {
       CMAKE_C_STANDARD: '99',
       CMAKE_CXX_STANDARD: '11',
-      CMAKE_BUILD_TYPE: (!!this._debug.value) ? 'Debug' : 'Release'
+      CMAKE_BUILD_TYPE: (!!this._debug.value) ? 'Debug' : 'Release',
+      ...cmakeDefines
     }) : cmake.configure(root, path.join(root, buildDir), {
       CMAKE_C_STANDARD: '99',
       CMAKE_CXX_STANDARD: '11',
       // CMAKE_VERBOSE_MAKEFILE: '1',
       // CMAKE_BUILD_RPATH_USE_ORIGIN: 'TRUE',
-      ...((!!this._debug.value) ? { CMAKE_BUILD_TYPE: 'Debug' } : { CMAKE_BUILD_TYPE: 'Release' })
+      ...((!!this._debug.value) ? { CMAKE_BUILD_TYPE: 'Debug' } : { CMAKE_BUILD_TYPE: 'Release' }),
+      ...cmakeDefines
     }, process.platform === 'win32' ? [
       '-A', toCMakeArch(this._arch.value)
     ] : [])

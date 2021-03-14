@@ -155,6 +155,10 @@ function e (obj, defines, seen) {
   }
 }
 
+let injectVCRuntimeFunction = false
+let mainCMakeLists = null
+let includeVCRuntime = null
+
 function generateCMakeLists ({
   config = {},
   configPath = '',
@@ -183,6 +187,15 @@ function generateCMakeLists ({
   }
   const cmklists = new CMakeLists(cmklistPath)
   const isMain = !parentPath
+  if (isMain) {
+    mainCMakeLists = cmklists
+    includeVCRuntime = function () {
+      if (!injectVCRuntimeFunction) {
+        cmklists.writeIncludeLine(`include(${q(path.relative(configPath, getCMakeInclude('vcruntime')))})`)
+        injectVCRuntimeFunction = true
+      }
+    }
+  }
 
   const mergedDefines = {
     ...(config.variables || {}),
@@ -249,7 +262,6 @@ endif()`) */
 
   const targets = config.targets
 
-  let injectVCRuntimeFunction = false
   let injectRequireFunction = false
   let injectNapiFunction = false
 
@@ -313,7 +325,9 @@ endif()`) */
     cmklists.writeLine(`# ======= START: ${target.name} =======`)
     cmklists.writeLine('')
 
-    cmklists.writeLine(`file(GLOB_RECURSE ${target.name}_SRC${sep()}${target.sources.map(s => q(s)).join(sep())})`)
+    if (Array.isArray(target.sources)) {
+      cmklists.writeLine(`file(GLOB_RECURSE ${target.name}_SRC${sep()}${target.sources.map(s => q(s)).join(sep())})`)
+    }
     if (target.type === 'exe') {
       cmklists.writeLine(`add_executable(${target.name} \${${target.name}_SRC})`)
       target.properties = {
@@ -333,6 +347,8 @@ endif()`) */
           ...(target.properties || {}),
         }
       }
+    } else if (target.type === 'interface') {
+      cmklists.writeLine(`add_library(${target.name} INTERFACE)`)
     } else if (target.type === 'node') {
       if (process.platform === 'win32' && !isEmscripten) {
         cmklists.writeLine(`add_library(${target.name} SHARED \${${target.name}_SRC} ${q(path.relative(configPath, path.join(__dirname, 'src/win_delay_load_hook.cc')))})`)
@@ -473,8 +489,26 @@ endif()`) */
     if (publicLibPaths.length > 0) {
       cmklists.writeLine(`target_link_directories(${target.name} PUBLIC${sep()}${publicLibPaths.map(v => abs(v)).join(sep())})`)
     }
-    const libs = target.libs || []
+    let libs = target.libs || []
     if (libs.length > 0) {
+      
+      libs = libs.map(lib => {
+        if (lib.charAt(0) !== '.' && (lib.endsWith('!') || lib.endsWith('#'))) {
+          const libname = lib.substring(0, lib.length - 1)
+          const flag = lib.charAt(lib.length - 1)
+          if (process.platform === 'win32' && !isEmscripten) {
+            includeVCRuntime()
+            if (flag === '!') {
+              cmklists.writeLine(`cgen_target_vcrt_mt(${libname} TRUE)`)
+            } else if (flag === '#') {
+              cmklists.writeLine(`cgen_target_vcrt_mt(${libname} FALSE)`)
+            }
+          }
+          return libname
+        } else {
+          return lib
+        }
+      })
       cmklists.writeLine(`target_link_libraries(${target.name}${sep()}${libs.map(v => getLib(v)).join(sep())})`)
     }
     const compileOptions = target.compileOptions || []
@@ -511,12 +545,13 @@ endif()`) */
 )`)
     }
 
-    if (!!target.staticVCRuntime && !isEmscripten) {
-      if (isMain && !injectVCRuntimeFunction) {
-        cmklists.writeIncludeLine(`include(${q(path.relative(configPath, getCMakeInclude('vcruntime')))})`)
-        injectVCRuntimeFunction = true
+    if (('staticVCRuntime' in target) && process.platform === 'win32' && !isEmscripten) {
+      includeVCRuntime()
+      if (target.staticVCRuntime === true) {
+        cmklists.writeLine(`cgen_target_vcrt_mt(${target.name} TRUE)`)
+      } else if (target.staticVCRuntime === false) {
+        cmklists.writeLine(`cgen_target_vcrt_mt(${target.name} FALSE)`)
       }
-      cmklists.writeLine(`cgen_target_vcrt_mt(${target.name})`)
     }
 
     cmklists.writeLine('')
