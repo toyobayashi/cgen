@@ -279,7 +279,8 @@ endif()`) */
       const conf = loadConfig(root, mergedOptions, {
         parentRootDir: configPath || null,
         isClean: false,
-        isDebug: !!isDebug
+        isDebug: !!isDebug,
+        isEmscripten: isEmscripten
       })
 
       generateCMakeLists({

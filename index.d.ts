@@ -110,6 +110,8 @@ export declare interface BuildingContext {
   isClean: boolean;
   /** `true` if run `cgen <action> --debug` */
   isDebug: boolean;
+  /** `true` if run `cgen <action> --emscripten` */
+  isEmscripten?: boolean;
 }
 
 export declare type FunctionConfiguration<O = any> = (options: O, ctx: BuildingContext) => Configuration;

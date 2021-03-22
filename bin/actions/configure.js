@@ -115,9 +115,10 @@ class ConfigureAction extends CommandLineAction {
     const config = loadConfig(root, globalOptions, {
       parentRootDir: null,
       isClean: false,
-      isDebug: !!this._debug.value
+      isDebug: !!this._debug.value,
+      isEmscripten: !!this._emscripten.value
     })
-    
+
     generateCMakeLists({
       config: config,
       configPath: root, 
