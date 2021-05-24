@@ -1,31 +1,77 @@
 #ifndef __LIB_H__
 #define __LIB_H__
 
+#if defined(_MSC_VER)
+  #if _MSC_VER < 1910 // MSVC 2017-
+    #error MSVC 2017 or later is required.
+  #endif
+#endif
+
 #ifdef __cplusplus
-  #define EXTERN_C_START extern "C" {
-  #define EXTERN_C_END }
-#else
-  #define EXTERN_C_START
-  #define EXTERN_C_END
-#endif
-
-#ifdef _WIN32
-  #ifdef LIB_BUILD_DLL
-  #define LIB_API __declspec(dllexport)
-  #else
-  // #define LIB_API __declspec(dllimport)
-  #define LIB_API
+  #ifndef EXTERN_C
+    #define EXTERN_C extern "C"
+  #endif
+  #ifndef EXTERN_C_START
+    #define EXTERN_C_START extern "C" {
+  #endif
+  #ifndef EXTERN_C_END
+    #define EXTERN_C_END }
   #endif
 #else
-  #ifdef LIB_BUILD_DLL
-  #define LIB_API __attribute__((visibility("default")))
-  #else
-  #define LIB_API
+  #ifndef EXTERN_C
+    #define EXTERN_C
+  #endif
+  #ifndef EXTERN_C_START
+    #define EXTERN_C_START
+  #endif
+  #ifndef EXTERN_C_END
+    #define EXTERN_C_END
   #endif
 #endif
 
-EXTERN_C_START
-LIB_API int add(int, int);
-EXTERN_C_END
+#if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW__)
+  #ifdef LIB_BUILD_DLL
+    #ifdef __GNUC__
+      #define _LIB_EXPORT __attribute__((dllexport))
+    #else
+      #define _LIB_EXPORT __declspec(dllexport)
+    #endif
+  #else
+    #ifdef LIB_USE_DLL
+      #ifdef __GNUC__
+        #define _LIB_EXPORT __attribute__((dllimport))
+      #else
+        #define _LIB_EXPORT __declspec(dllimport)
+      #endif
+    #else
+      #define _LIB_EXPORT
+    #endif
+  #endif
+  #define _LIB_LOCAL
+#else
+  #if __GNUC__ >= 4 && defined(LIB_BUILD_DLL)
+    #define _LIB_EXPORT __attribute__((visibility("default")))
+    #define _LIB_LOCAL  __attribute__((visibility("hidden")))
+  #else
+    #define _LIB_EXPORT
+    #define _LIB_LOCAL
+  #endif
+#endif
+
+#ifndef LIB_CALL
+  #if defined(WIN32) || defined(_WIN32)
+  #define LIB_CALL /* __stdcall */
+  #else
+  #define LIB_CALL /* __cdecl */
+  #endif
+#endif
+
+#if defined(_MSC_VER)
+#define LIB_API(ret_type) EXTERN_C _LIB_EXPORT ret_type LIB_CALL
+#else
+#define LIB_API(ret_type) EXTERN_C _LIB_EXPORT LIB_CALL ret_type
+#endif
+
+LIB_API(int) add(int, int);
 
 #endif
