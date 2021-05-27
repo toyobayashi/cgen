@@ -1,7 +1,7 @@
 #ifndef __LIB_H__
 #define __LIB_H__
 
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
   #if _MSC_VER < 1910 // MSVC 2017-
     #error MSVC 2017 or later is required.
   #endif
@@ -67,11 +67,14 @@
 #endif
 
 #if defined(_MSC_VER)
-#define LIB_API(ret_type) EXTERN_C _LIB_EXPORT ret_type LIB_CALL
+  #define LIB_API(ret_type) EXTERN_C _LIB_EXPORT ret_type LIB_CALL
+#elif defined(__EMSCRIPTEN__)
+  #include <emscripten.h>
+  #define LIB_API(ret_type) EXTERN_C _LIB_EXPORT LIB_CALL ret_type EMSCRIPTEN_KEEPALIVE
 #else
-#define LIB_API(ret_type) EXTERN_C _LIB_EXPORT LIB_CALL ret_type
+  #define LIB_API(ret_type) EXTERN_C _LIB_EXPORT LIB_CALL ret_type
 #endif
 
-LIB_API(int) add(int, int);
+LIB_API(int) add(int a, int b);
 
 #endif
