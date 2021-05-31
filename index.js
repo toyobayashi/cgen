@@ -536,12 +536,21 @@ endif()`) */
     if (publicLinkOptions.length > 0) {
       cmklists.writeLine(`target_link_options(${target.name} PUBLIC${sep()}${publicLinkOptions.map(v => q(v)).join(sep())})`)
     }
-    const wrapScript = target.wrapScript ? (isAbsolute(target.wrapScript) ? target.wrapScript : path.posix.join('${CMAKE_CURRENT_SOURCE_DIR}', target.wrapScript)) : ''
-    if (isEmscripten && (('wrapScript' in target) || wrapScript)) {
+
+    if (isEmscripten && (('wrapScript' in target) || ('emwrap' in target))) {
+      if ('wrapScript' in target) {
+        target.emwrap = target.emwrap || {}
+        target.emwrap.wrapScript = target.emwrap.wrapScript || target.wrapScript
+      }
+      const wrapScript = (target.emwrap.wrapScript
+        ? (isAbsolute(target.emwrap.wrapScript) ? target.emwrap.wrapScript : path.posix.join('${CMAKE_CURRENT_SOURCE_DIR}', target.emwrap.wrapScript))
+        : '').replace(/\\/g,'/')
+      const libName = String(target.emwrap.libName || target.name)
+      const exportsOnInit = Array.isArray(target.emwrap.exportsOnInit) ? target.emwrap.exportsOnInit : []
       cmklists.writeLine(`add_custom_command(
   TARGET ${target.name}
   POST_BUILD
-  COMMAND node -e "\\"require('${__filename.replace(/\\/g, '/')}').emwrap(require('path').join('\${CMAKE_CURRENT_BINARY_DIR}','\${CMAKE_BUILD_TYPE}','${target.name}.js'),'${target.name}','${wrapScript.replace(/\\/g,'/')}',${isDebug ? 'false' : 'true'})\\""
+  COMMAND node -e "\\"require('${__filename.replace(/\\/g, '/')}').emwrap({filePath:require('path').join('\${CMAKE_CURRENT_BINARY_DIR}','\${CMAKE_BUILD_TYPE}','${target.name}.js'),libName:'${libName}',wrapScript:'${wrapScript}',minify:${isDebug ? 'false' : 'true'},exportsOnInit:[${exportsOnInit.map(v => `'${String(v)}'`).join(',')}]})\\""
   WORKING_DIRECTORY \${CMAKE_CURRENT_SOURCE_DIR}
 )`)
     }
