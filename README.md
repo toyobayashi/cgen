@@ -14,9 +14,13 @@ Node.js CLI tool based on CMake for generating C/C++ project.
 
 * Building webassembly
 
-  * emsdk, `$EMSDK` system environment variable set to emsdk root path
+  * emsdk
   
   * Emscripten 2.x
+
+    * `$EMSDK` system environment variable set to emsdk root path
+
+    * `$EMSDK/upstream/emscripten` in `$PATH`
   
   * make / nmake
 
@@ -93,6 +97,8 @@ module.exports = function (_options, { isDebug }) {
 
   const commonFlags = [
     '--bind',
+    // '-sDYNCALLS=1', v2.0.13+ if you need dynCall_xxx()
+    // '-sERROR_ON_UNDEFINED_SYMBOLS=0', if add js function to imports.env
     '-sALLOW_MEMORY_GROWTH=1',
     ...(isDebug ? debugFlags : [])
   ]
@@ -141,9 +147,37 @@ Use webassembly:
 ```html
 <script src="./.cgenbuild/mywasm.js"></script>
 <script>
-  window.mywasm.default().then(function (Module) {
-    Module.myfunction();
+(function () {
+  window.mywasm.default().then(function (emctx) {
+    // emscriptenModule === emctx.Module
+    emctx.Module.myfunction();
   });
+
+  // or use custom instatiating to add js function to native world
+  var emscriptenModule = {
+    // Custom instantiating
+    instantiateWasm: function (imports, receiveInstance) {
+      fetch('mywasm.wasm', {
+        credentials: 'same-origin'
+      })
+        .then(function (res) {
+          return res.arrayBuffer();
+        })
+        .then(function (arrayBuffer) {
+          // imports.env.js_fn = xxx
+          return WebAssembly.instantiate(arrayBuffer, imports);
+        })
+        .then(({ instance, module }) => {
+          receiveInstance(instance, module);
+        });
+      return {};
+    }
+  };
+  window.mywasm.default(emscriptenModule).then(function (emctx) {
+    // emscriptenModule === emctx.Module
+    emctx.Module.myfunction();
+  });
+})();
 </script>
 ```
 
@@ -152,7 +186,7 @@ or with bundler
 ```js
 import init from './.cgenbuild/mywasm.js'
 // const init = require('./.cgenbuild/mywasm.js').default
-init().then((Module) => { Module.myfunction() })
+init().then((emctx) => { emctx.Module.myfunction() })
 ```
 
 or
@@ -161,10 +195,10 @@ or
 import init, { myfunction } from './.cgenbuild/mywasm.js'
 
 // typeof myfunction === 'undefined'
-init().then((Module) => {
+init().then((emctx) => {
   // typeof myfunction === 'function'
-  // myfunction === Module.myfunction
-  myfunction()
+  // myfunction === emctx.Module.myfunction
+  emctx.myfunction()
 })
 ```
 
