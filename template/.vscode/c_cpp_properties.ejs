@@ -4,18 +4,15 @@
       "${default}",
       "${workspaceFolder}/node_modules/node-addon-api"
     ],
-    "defines": [],
-    "clPath": "<%- clPath %>",
-    "gccPath": "/usr/bin/gcc",
-    "clangPath": "/usr/bin/clang"
+    "defines": []
   },
   "configurations": [
     {
       "name": "Win32",
       "defines": ["${defines}", "_DEBUG", "UNICODE", "_UNICODE", "_CRT_SECURE_NO_WARNINGS"],
-      "compilerPath": "${clPath}",
+      "compilerPath": "<%- clPath %>",
       "windowsSdkVersion": "<%- windowsSdkVersion %>",
-      "intelliSenseMode": "msvc-x64",
+      "intelliSenseMode": "windows-msvc-x64",
       "cStandard": "c99",
       "cppStandard": "c++11",
       "includePath": ["${includePath}"]
@@ -23,10 +20,10 @@
     {
       "name": "Linux",
       "defines": ["${defines}"],
-      "compilerPath": "${gccPath}",
+      "compilerPath": "/usr/bin/gcc",
       "cStandard": "c99",
       "cppStandard": "c++11",
-      "intelliSenseMode": "gcc-x64",
+      "intelliSenseMode": "linux-gcc-x64",
       "browse": {
         "path": [
           "${workspaceFolder}"
@@ -41,25 +38,25 @@
       "includePath": ["${includePath}"],
       "defines": ["${defines}"],
       "macFrameworkPath": ["/System/Library/Frameworks", "/Library/Frameworks"],
-      "compilerPath": "${clangPath}",
+      "compilerPath": "/usr/bin/clang",
       "cStandard": "c99",
       "cppStandard": "c++11",
-      "intelliSenseMode": "${default}"
+      "intelliSenseMode": "macos-clang-x64"
     },
     {
       "name": "Emscripten",
       "defines": ["${defines}"],
       "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc",
-      "intelliSenseMode": "clang-x64",
+      "intelliSenseMode": "clang-x86",
       "cStandard": "c99",
       "cppStandard": "c++11",
       "includePath": ["${includePath}"]
     },
     {
-      "name": "Win32 Emscripten",
+      "name": "Emscripten (Win32)",
       "defines": ["${defines}"],
       "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc.bat",
-      "intelliSenseMode": "clang-x64",
+      "intelliSenseMode": "clang-x86",
       "cStandard": "c99",
       "cppStandard": "c++11",
       "includePath": ["${includePath}"]

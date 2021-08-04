@@ -17,7 +17,7 @@
         return NULL;                                              \
       }                                                           \
     }                                                             \
-  } while(0)
+  } while (0)
 
 static napi_value Main(napi_env env, napi_callback_info info) {
   napi_value result;

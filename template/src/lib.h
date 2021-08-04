@@ -1,8 +1,8 @@
-#ifndef __LIB_H__
-#define __LIB_H__
+#ifndef TEMPLATE_SRC_LIB_H_
+#define TEMPLATE_SRC_LIB_H_
 
 #ifdef _MSC_VER
-  #if _MSC_VER < 1910 // MSVC 2017-
+  #if _MSC_VER < 1910  // MSVC 2017-
     #error MSVC 2017 or later is required.
   #endif
 #endif
@@ -29,7 +29,7 @@
   #endif
 #endif
 
-#if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW__)
+#if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW__)  // NOLINT
   #ifdef LIB_BUILD_DLL
     #ifdef __GNUC__
       #define _LIB_EXPORT __attribute__((dllexport))
@@ -69,12 +69,12 @@
 #if defined(_MSC_VER)
   #define LIB_API(ret_type) EXTERN_C _LIB_EXPORT ret_type LIB_CALL
 #elif defined(__EMSCRIPTEN__)
-  #include <emscripten.h>
-  #define LIB_API(ret_type) EXTERN_C _LIB_EXPORT LIB_CALL ret_type EMSCRIPTEN_KEEPALIVE
+  #define LIB_API(ret_type) \
+    EXTERN_C _LIB_EXPORT LIB_CALL ret_type __attribute__((used))
 #else
   #define LIB_API(ret_type) EXTERN_C _LIB_EXPORT LIB_CALL ret_type
 #endif
 
 LIB_API(int) add(int a, int b);
 
-#endif
+#endif  // TEMPLATE_SRC_LIB_H_
