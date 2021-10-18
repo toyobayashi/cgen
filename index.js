@@ -215,23 +215,24 @@ function generateCMakeLists ({
     cmklists.writeHeadLine(`  cmake_policy(SET CMP0068 NEW)`)
     cmklists.writeHeadLine(`endif()`)
 
-    // CMAKE_GENERATOR_PLATFORM
-    cmklists.writeHeadLine(`
-if(MSVC)
-  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG   "\${CMAKE_CURRENT_BINARY_DIR}/Debug"   CACHE PATH "archive output debug")
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG   "\${CMAKE_CURRENT_BINARY_DIR}/Debug"   CACHE PATH "library output debug")
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   "\${CMAKE_CURRENT_BINARY_DIR}/Debug"   CACHE PATH "exedll output debug")
-  set(CMAKE_PDB_OUTPUT_DIRECTORY_DEBUG       "\${CMAKE_CURRENT_BINARY_DIR}/Debug"   CACHE PATH "pdb output debug")
-  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE "\${CMAKE_CURRENT_BINARY_DIR}/Release" CACHE PATH "archive output release")
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "\${CMAKE_CURRENT_BINARY_DIR}/Release" CACHE PATH "library output release")
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "\${CMAKE_CURRENT_BINARY_DIR}/Release" CACHE PATH "exedll output release")
-  set(CMAKE_PDB_OUTPUT_DIRECTORY_RELEASE     "\${CMAKE_CURRENT_BINARY_DIR}/Release" CACHE PATH "pdb output release")
-else()
-  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "\${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_BUILD_TYPE}" CACHE PATH "archive output")
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "\${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_BUILD_TYPE}" CACHE PATH "library output")
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "\${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_BUILD_TYPE}" CACHE PATH "exedll output")
-  set(CMAKE_PDB_OUTPUT_DIRECTORY     "\${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_BUILD_TYPE}" CACHE PATH "pdb output")
-endif()`)
+    if (!isEmscripten && process.platform === 'win32') {
+      // CMAKE_GENERATOR_PLATFORM
+      cmklists.writeHeadLine(`
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG   "\${CMAKE_CURRENT_BINARY_DIR}/Debug"   CACHE PATH "archive output debug")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG   "\${CMAKE_CURRENT_BINARY_DIR}/Debug"   CACHE PATH "library output debug")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   "\${CMAKE_CURRENT_BINARY_DIR}/Debug"   CACHE PATH "exedll output debug")
+set(CMAKE_PDB_OUTPUT_DIRECTORY_DEBUG       "\${CMAKE_CURRENT_BINARY_DIR}/Debug"   CACHE PATH "pdb output debug")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE "\${CMAKE_CURRENT_BINARY_DIR}/Release" CACHE PATH "archive output release")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "\${CMAKE_CURRENT_BINARY_DIR}/Release" CACHE PATH "library output release")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "\${CMAKE_CURRENT_BINARY_DIR}/Release" CACHE PATH "exedll output release")
+set(CMAKE_PDB_OUTPUT_DIRECTORY_RELEASE     "\${CMAKE_CURRENT_BINARY_DIR}/Release" CACHE PATH "pdb output release")`)
+    } else {
+      cmklists.writeHeadLine(`
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "\${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_BUILD_TYPE}" CACHE PATH "archive output")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "\${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_BUILD_TYPE}" CACHE PATH "library output")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "\${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_BUILD_TYPE}" CACHE PATH "exedll output")
+set(CMAKE_PDB_OUTPUT_DIRECTORY     "\${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_BUILD_TYPE}" CACHE PATH "pdb output")`)
+    }
   }
   cmklists.writeHeadLine(`project(${config.project})`)
 
