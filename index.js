@@ -540,20 +540,17 @@ endif()`) */
       cmklists.writeLine(`target_link_options(${target.name} PUBLIC${sep()}${publicLinkOptions.map(v => q(v)).join(sep())})`)
     }
 
-    if (isEmscripten && (('wrapScript' in target) || ('emwrap' in target))) {
-      if ('wrapScript' in target) {
-        target.emwrap = target.emwrap || {}
-        target.emwrap.wrapScript = target.emwrap.wrapScript || target.wrapScript
-      }
-      const wrapScript = (target.emwrap.wrapScript
-        ? (isAbsolute(target.emwrap.wrapScript) ? target.emwrap.wrapScript : path.posix.join('${CMAKE_CURRENT_SOURCE_DIR}', target.emwrap.wrapScript))
+    if (isEmscripten && ('emwrap' in target)) {
+      const moduleType = target.emwrap.module || 'umd'
+      const wrapScript = (target.emwrap.script
+        ? (isAbsolute(target.emwrap.script) ? target.emwrap.script : path.posix.join('${CMAKE_CURRENT_SOURCE_DIR}', target.emwrap.script))
         : '').replace(/\\/g,'/')
-      const libName = String(target.emwrap.libName || target.name)
-      const exportsOnInit = Array.isArray(target.emwrap.exportsOnInit) ? target.emwrap.exportsOnInit : []
+      const libName = String(target.emwrap.name || target.name)
+      const exportsOnInit = Array.isArray(target.emwrap.exports) ? target.emwrap.exports : []
       cmklists.writeLine(`add_custom_command(
   TARGET ${target.name}
   POST_BUILD
-  COMMAND node -e "\\"require('${__filename.replace(/\\/g, '/')}').emwrap({filePath:require('path').join('\${CMAKE_CURRENT_BINARY_DIR}','\${CMAKE_BUILD_TYPE}','${target.name}.js'),libName:'${libName}',wrapScript:'${wrapScript}',minify:${isDebug ? 'false' : 'true'},exportsOnInit:[${exportsOnInit.map(v => `'${String(v)}'`).join(',')}]})\\""
+  COMMAND node -e "\\"require('${__filename.replace(/\\/g, '/')}').emwrap(require('path').join('\${CMAKE_CURRENT_BINARY_DIR}','\${CMAKE_BUILD_TYPE}','${target.name}.js'),{module:'${moduleType}',name:'${libName}',script:'${wrapScript}',minify:${isDebug ? 'false' : 'true'},exports:[${exportsOnInit.map(v => `'${String(v)}'`).join(',')}]})\\""
   WORKING_DIRECTORY \${CMAKE_CURRENT_SOURCE_DIR}
 )`)
     }
