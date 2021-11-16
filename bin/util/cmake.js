@@ -12,6 +12,19 @@ function checkCMake () {
 
 checkCMake()
 
+/**
+ * @param {string} msvsver 
+ * @returns {{
+ *   version: string;
+ *   versionMajor: number;
+ *   versionMinor: number;
+ *   versionYear: number;
+ *   path: string;
+ *   msBuild: string;
+ *   toolset: string;
+ *   sdk: string;
+ * }}
+ */
 function findvs (msvsver) {
   return new Promise((resolve, reject) => {
     require('../../lib/find-visualstudio.js')({
@@ -26,16 +39,20 @@ function findvs (msvsver) {
 async function getvsinfo () {
   let info
   try {
-    info = await findvs('2019')
-  } catch (_) {
+    info = await findvs('2022')
+  } catch {
     try {
-      info = await findvs('2017')
+      info = await findvs('2019')
     } catch (_) {
-      throw new Error('Visual Studio 2019 or 2017 is not found')
+      try {
+        info = await findvs('2017')
+      } catch (_) {
+        throw new Error('Visual Studio 2022/2019/2017 is not found')
+      }
     }
   }
   return info
-} 
+}
 
 async function configure (root, buildDir, defines = {}, configureArgs = []) {
   if (process.platform === 'win32') {
