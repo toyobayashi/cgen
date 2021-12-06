@@ -126,18 +126,11 @@ module.exports = function (_options, { isDebug }) {
 ```js
 /**
  * export.js
- * 
- * Run only once after wasm loaded succesfully
- * 
- * typeof require === 'undefined'
- * exports.__esModule === true
- * typeof exports.default === 'function' // init()
- * typeof module === 'undefined'
- * typeof Module === 'object'
- * typeof emctx === 'object' // variables in `exportsOnInit` will be added here and init().then((emctx) => {})
  */
 
-exports.myfunction = Module.myfunction
+exports.myfunction = function () {
+  return Module.myfunction.apply(Module, arguments)
+}
 ```
 
 Build command: `cgen rebuild --emscripten` or `cgen rebuild -e`
@@ -311,6 +304,16 @@ export declare interface Configuration {
   targets: Target[];
   /** Minimum required cmake version */
   minimumVersion?: string;
+  /** add_compile_definitions */
+  defines?: string[];
+  /** add_compile_options */
+  compileOptions?: string[];
+  /** include_directories */
+  includePaths?: string[];
+  /** link_directories */
+  libPaths?: string[];
+  /** add_link_options */
+  linkOptions?: string[];
   /** The Node.js script run after build */
   postScript?: string;
   /** Replace `%VAR%` in configuration */

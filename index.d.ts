@@ -94,6 +94,16 @@ export declare interface Configuration {
   targets: Target[];
   /** Minimum required cmake version */
   minimumVersion?: string;
+  /** add_compile_definitions */
+  defines?: string[];
+  /** add_compile_options */
+  compileOptions?: string[];
+  /** include_directories */
+  includePaths?: string[];
+  /** link_directories */
+  libPaths?: string[];
+  /** add_link_options */
+  linkOptions?: string[];
   /** The Node.js script run after build */
   postScript?: string;
   /** Replace `%VAR%` in configuration */

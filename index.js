@@ -96,7 +96,7 @@ function abs (p) {
   if (isAbsolute(p)) {
     return q(p)
   }
-  return q(path.posix.join('${CMAKE_CURRENT_SOURCE_DIR}', p))
+  return q('${CMAKE_CURRENT_SOURCE_DIR}' + p ? ('/' + path.posix.join(p)) : '')
 }
 
 function p (s, c = process.cwd()) {
@@ -108,7 +108,7 @@ function p (s, c = process.cwd()) {
 
 function getLib (p) {
   if (p.charAt(0) === '.') {
-    return q(path.posix.join('${CMAKE_CURRENT_SOURCE_DIR}', p))
+    return q('${CMAKE_CURRENT_SOURCE_DIR}' + p ? ('/' + path.posix.join(p)) : '')
   }
   return q(p)
 }
@@ -316,6 +316,22 @@ endif()`) */
   }
 
   const targetDefault = config.targetDefault || {}
+
+  if (config.defines && config.defines.length > 0) {
+    cmklists.writeLine(`add_compile_definitions(${sep()}${config.defines.map(v => q(v)).join(sep())})`)
+  }
+  if (config.compileOptions && config.compileOptions.length > 0) {
+    cmklists.writeLine(`add_compile_options(${sep()}${config.compileOptions.map(v => q(v)).join(sep())})`)
+  }
+  if (config.includePaths && config.includePaths.length > 0) {
+    cmklists.writeLine(`include_directories(${sep()}${config.includePaths.map(v => abs(v)).join(sep())})`)
+  }
+  if (config.libPaths && config.libPaths.length > 0) {
+    cmklists.writeLine(`link_directories(${sep()}${config.libPaths.map(v => abs(v)).join(sep())})`)
+  }
+  if (config.linkOptions && config.linkOptions.length > 0) {
+    cmklists.writeLine(`add_link_options(${sep()}${config.linkOptions.map(v => q(v)).join(sep())})`)
+  }
 
   for (let i = 0; i < targets.length; i++) {
     const target = targets[i]
