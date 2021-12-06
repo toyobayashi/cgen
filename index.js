@@ -96,7 +96,7 @@ function abs (p) {
   if (isAbsolute(p)) {
     return q(p)
   }
-  return q('${CMAKE_CURRENT_SOURCE_DIR}' + p ? ('/' + path.posix.join(p)) : '')
+  return q('${CMAKE_CURRENT_SOURCE_DIR}' + (p ? ('/' + path.posix.join(p)) : ''))
 }
 
 function p (s, c = process.cwd()) {
@@ -108,7 +108,7 @@ function p (s, c = process.cwd()) {
 
 function getLib (p) {
   if (p.charAt(0) === '.') {
-    return q('${CMAKE_CURRENT_SOURCE_DIR}' + p ? ('/' + path.posix.join(p)) : '')
+    return q('${CMAKE_CURRENT_SOURCE_DIR}' + (p ? ('/' + path.posix.join(p)) : ''))
   }
   return q(p)
 }
@@ -559,7 +559,7 @@ endif()`) */
     if (isEmscripten && ('emwrap' in target)) {
       const moduleType = target.emwrap.module || 'umd'
       const wrapScript = (target.emwrap.script
-        ? (isAbsolute(target.emwrap.script) ? target.emwrap.script : path.posix.join('${CMAKE_CURRENT_SOURCE_DIR}', target.emwrap.script))
+        ? (isAbsolute(target.emwrap.script) ? target.emwrap.script : ('${CMAKE_CURRENT_SOURCE_DIR}' + (target.emwrap.script ? ('/' + path.posix.join(target.emwrap.script)) : '')))
         : '').replace(/\\/g,'/')
       const libName = String(target.emwrap.name || target.name)
       const exportsOnInit = Array.isArray(target.emwrap.exports) ? target.emwrap.exports : []
