@@ -304,6 +304,10 @@ endif()`) */
       if (path.isAbsolute(mod) || mod.charAt(0) === '.') {
         root = p(mod, configPath)
         if (fs.existsSync(p('CMakeLists.txt', root))) {
+          const localOptions = dependencies[mod] || {}
+          Object.keys(localOptions).forEach(k => {
+            cmklists.writeLine(`set(${k} ${q(localOptions[k])})`)
+          })
           cmklists.writeLine(`cgen_require(${q(mod)})`)
         } else {
           _require(root, mod)
