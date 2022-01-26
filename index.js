@@ -306,7 +306,9 @@ endif()`) */
         if (fs.existsSync(p('CMakeLists.txt', root))) {
           const localOptions = dependencies[mod] || {}
           Object.keys(localOptions).forEach(k => {
-            cmklists.writeLine(`set(${k} ${q(localOptions[k])})`)
+            const type = typeof localOptions[k] === 'boolean' ? 'BOOL' : 'STRING'
+            const value = typeof localOptions[k] === 'boolean' ? (localOptions[k] ? 'ON' : 'OFF') : q(localOptions[k])
+            cmklists.writeLine(`set(${k} ${value} CACHE ${type} "")`)
           })
           cmklists.writeLine(`cgen_require(${q(mod)})`)
         } else {
