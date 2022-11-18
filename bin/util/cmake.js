@@ -144,7 +144,7 @@ async function emConfigure (root, buildDir, generator, defines = {}, configureAr
         gen = ['-G', 'Ninja']
         makeProgram = 'ninja'
       } else if (which('make')) {
-        gen = ['-G', 'MinGW Makefiles']
+        gen = ['-G', 'Unix Makefiles']
         makeProgram = 'make'
       }
     }
