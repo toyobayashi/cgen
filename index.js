@@ -401,8 +401,6 @@ endif()`) */
         `${nodeDir}/deps/v8/include`
       ])]))
       target.defines = Array.from(new Set([...(target.defines || []), ...([
-        'BUILDING_UV_SHARED=1',
-        'BUILDING_V8_SHARED=1',
         `NODE_GYP_MODULE_NAME=${target.name}`,
         'USING_UV_SHARED=1',
         'USING_V8_SHARED=1',
