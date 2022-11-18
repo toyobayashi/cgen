@@ -1,6 +1,6 @@
 {
   "name": "@tybys/cgen",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "description": "Node.js CLI tool based on CMake for generating C/C++ project",
   "main": "index.js",
   "typings": "index.d.ts",
@@ -30,8 +30,8 @@
   "homepage": "https://github.com/toyobayashi/cgen#readme",
   "license": "MIT",
   "dependencies": {
-    "@rushstack/ts-command-line": "^4.7.8",
-    "@tybys/emwrap": "^2.3.2",
+    "@rushstack/ts-command-line": "^4.13.1",
+    "@tybys/emwrap": "^2.3.4",
     "chalk": "^4.1.0",
     "deepmerge": "^4.2.2",
     "ejs": "^3.1.5",

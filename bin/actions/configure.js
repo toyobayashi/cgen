@@ -49,6 +49,20 @@ class ConfigureAction extends CommandLineAction {
       environmentVariable: 'NPM_CONFIG_DEVDIR'
     })
 
+    this._generator = this.defineStringParameter({
+      argumentName: 'GENERATOR',
+      parameterLongName: '--generator',
+      parameterShortName: '-G',
+      required: false,
+      description: 'CMake generator',
+    })
+
+    this._skip = this.defineFlagParameter({
+      argumentName: 'SKIP',
+      parameterLongName: '--skip',
+      description: 'Generate CMakeLists.txt only',
+    })
+
     this._nodedir = this.defineStringParameter({
       argumentName: 'NODEDIR',
       parameterLongName: '--nodedir',
@@ -135,13 +149,16 @@ class ConfigureAction extends CommandLineAction {
       defines: defines,
       isDebug: !!this._debug.value
     })
+    if (this._skip.value) {
+      return Promise.resolve()
+    }
     const cmake = require('../util/cmake.js')
-    const promise = this._emscripten.value ? cmake.emConfigure(root, path.join(root, buildDir), {
+    const promise = this._emscripten.value ? cmake.emConfigure(root, path.join(root, buildDir), this._generator.value, {
       CMAKE_C_STANDARD: '11',
       CMAKE_CXX_STANDARD: '17',
       CMAKE_BUILD_TYPE: (!!this._debug.value) ? 'Debug' : 'Release',
       ...cmakeDefines
-    }) : cmake.configure(root, path.join(root, buildDir), {
+    }) : cmake.configure(root, path.join(root, buildDir), this._generator.value, {
       CMAKE_C_STANDARD: '11',
       CMAKE_CXX_STANDARD: '17',
       // CMAKE_VERBOSE_MAKEFILE: '1',

@@ -17,10 +17,19 @@ class CleanAction extends CommandLineAction {
       description: 'Path to the output, must be relative to cwd',
       defaultValue: '.cgenbuild'
     })
+
+    this._builddirOnly = this.defineFlagParameter({
+      argumentName: 'BUILDIR_ONLY',
+      parameterLongName: '--builddir-only',
+      description: 'Only clean the build directory, ignore generated CMakeLists.txt'
+    })
   }
 
   onExecute () {
-    require('../..').cleanBuild(process.cwd(), this._builddir.value)
+    require('../..').cleanBuild(process.cwd(), {
+      buildDirName: this._builddir.value,
+      buildDirOnly: Boolean(this._builddirOnly.value)
+    })
     return Promise.resolve()
   }
 }

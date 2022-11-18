@@ -169,7 +169,7 @@ export declare function resolve (dirname: string, requireFunction: NodeRequire, 
 /** @internal */
 export declare function loadConfig (root: string, options: Record<string, any>, ctx: BuildingContext): Configuration;
 /** @internal */
-export declare function cleanBuild (configRoot: string, buildDirName: string, parentRootDir?: string | null): void;
+export declare function cleanBuild (configRoot: string, options: { buildDirName: string; buildDirOnly?: boolean }, parentRootDir?: string | null): void;
 /** Do nothing, just for TypeScript intellisense */
 export declare function defineObjectConfig (config: Configuration): Configuration;
 /** Do nothing, just for TypeScript intellisense */

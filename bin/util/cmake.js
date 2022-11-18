@@ -72,7 +72,7 @@ async function configure (root, buildDir, defines = {}, configureArgs = []) {
   await spawn('cmake', cmakeArgs, root)
 }
 
-async function emConfigure (root, buildDir, defines = {}, configureArgs = []) {
+async function emConfigure (root, buildDir, generator, defines = {}, configureArgs = []) {
   fs.mkdirSync(buildDir, { recursive: true })
 
   if (process.platform === 'win32') {
@@ -89,14 +89,32 @@ async function emConfigure (root, buildDir, defines = {}, configureArgs = []) {
         throw new Error('emcmake.bat is not found')
       }
     }
-    const nmakePath = which('nmake')
-    defines.CMAKE_MAKE_PROGRAM = nmakePath ? 'nmake' : 'make'
+    let gen = []
+    let makeProgram
+    if (generator) {
+      gen = ['-G', generator]
+    } else {
+      if (which('ninja')) {
+        gen = ['-G', 'Ninja']
+        makeProgram = 'ninja'
+      } else if (which('nmake')) {
+        gen = ['-G', 'NMake Makefiles']
+        makeProgram = 'nmake'
+      } else if (which('make')) {
+        gen = ['-G', 'MinGW Makefiles']
+        makeProgram = 'make'
+      }
+    }
+    if (makeProgram && !defines.CMAKE_MAKE_PROGRAM) {
+      defines.CMAKE_MAKE_PROGRAM = makeProgram
+    }
+
     // defines.CMAKE_VERBOSE_MAKEFILE = 'ON'
     const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
     const cmakeArgs = ['cmake', 
       ...definesArgs,
       ...configureArgs,
-      '-G', nmakePath ? 'NMake Makefiles' : 'MinGW Makefiles',
+      ...gen,
       `-H.`,
       '-B',
       buildDir
@@ -116,11 +134,27 @@ async function emConfigure (root, buildDir, defines = {}, configureArgs = []) {
         throw new Error('emcmake is not found')
       }
     }
+    let gen = []
+    let makeProgram
+    if (generator) {
+      gen = ['-G', generator]
+    } else {
+      if (which('ninja')) {
+        gen = ['-G', 'Ninja']
+        makeProgram = 'ninja'
+      } else if (which('make')) {
+        gen = ['-G', 'MinGW Makefiles']
+        makeProgram = 'make'
+      }
+    }
+    if (makeProgram && !defines.CMAKE_MAKE_PROGRAM) {
+      defines.CMAKE_MAKE_PROGRAM = makeProgram
+    }
     const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
     const cmakeArgs = ['cmake', 
       ...definesArgs,
       ...configureArgs,
-      '-G', 'Unix Makefiles',
+      ...gen,
       `-H.`,
       '-B',
       buildDir

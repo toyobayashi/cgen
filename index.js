@@ -61,7 +61,11 @@ function rmSync (p) {
   }
 }
 
-function cleanBuild (configRoot, buildDirName, parentRootDir = null) {
+function cleanBuild (configRoot, options, parentRootDir = null) {
+  const {
+    buildDirName,
+    buildDirOnly
+  } = options
   const config = loadConfig(configRoot, {}, {
     parentRootDir: parentRootDir || null,
     isClean: true,
@@ -74,13 +78,13 @@ function cleanBuild (configRoot, buildDirName, parentRootDir = null) {
     names.forEach((mod) => {
       try {
         const root = findProjectRoot(requireFunction.resolve(mod))
-        cleanBuild(root, buildDirName, configRoot)
+        cleanBuild(root, options, configRoot)
       } catch (_) {}
     })
   }
   const cmk = path.join(configRoot, 'CMakeLists.txt')
   const out = path.join(configRoot, buildDirName)
-  if (fs.existsSync(cmk)) rmSync(cmk)
+  if (fs.existsSync(cmk) && !buildDirOnly) rmSync(cmk)
   if (fs.existsSync(out)) rmSync(out)
 }
 

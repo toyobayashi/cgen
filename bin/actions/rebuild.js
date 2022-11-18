@@ -27,6 +27,7 @@ class RebuildAction extends CommandLineAction {
     configureAction._cmakeDefines = this._cmakeDefines
     configureAction._options = this._options
     configureAction._builddir = this._builddir
+    configureAction._generator = this._generator
     buildAction._debug = this._debug
     buildAction._builddir = this._builddir
     cleanAction._builddir = this._builddir
