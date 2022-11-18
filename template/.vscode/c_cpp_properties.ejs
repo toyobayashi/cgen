@@ -13,16 +13,16 @@
       "compilerPath": "<%- clPath %>",
       "windowsSdkVersion": "<%- windowsSdkVersion %>",
       "intelliSenseMode": "windows-msvc-x64",
-      "cStandard": "c99",
-      "cppStandard": "c++11",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
       "includePath": ["${includePath}"]
     },
     {
       "name": "Linux",
       "defines": ["${defines}"],
       "compilerPath": "/usr/bin/gcc",
-      "cStandard": "c99",
-      "cppStandard": "c++11",
+      "cStandard": "c11",
+      "cppStandard": "c++14",
       "intelliSenseMode": "linux-gcc-x64",
       "browse": {
         "path": [
@@ -39,8 +39,8 @@
       "defines": ["${defines}"],
       "macFrameworkPath": ["/System/Library/Frameworks", "/Library/Frameworks"],
       "compilerPath": "/usr/bin/clang",
-      "cStandard": "c99",
-      "cppStandard": "c++11",
+      "cStandard": "c11",
+      "cppStandard": "c++14",
       "intelliSenseMode": "macos-clang-x64"
     },
     {
@@ -48,8 +48,8 @@
       "defines": ["${defines}"],
       "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc",
       "intelliSenseMode": "clang-x86",
-      "cStandard": "c99",
-      "cppStandard": "c++11",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
       "includePath": ["${includePath}"]
     },
     {
@@ -57,8 +57,17 @@
       "defines": ["${defines}"],
       "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc.bat",
       "intelliSenseMode": "clang-x86",
-      "cStandard": "c99",
-      "cppStandard": "c++11",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "includePath": ["${includePath}"]
+    },
+    {
+      "name": "WASI",
+      "defines": ["${defines}"],
+      "compilerPath": "${env:WASI_SDK_PATH}/bin/clang",
+      "intelliSenseMode": "clang-x86",
+      "cStandard": "c11",
+      "cppStandard": "c++14",
       "includePath": ["${includePath}"]
     }
   ],

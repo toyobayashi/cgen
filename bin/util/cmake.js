@@ -62,9 +62,9 @@ async function configure (root, buildDir, generator, defines = {}, configureArgs
 
   const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
   const cmakeArgs = [ 
+    ...(generator ? ['-G', generator] : []),
     ...definesArgs,
     ...configureArgs,
-    ...(generator ? ['-G', generator] : []),
     `-H.`,
     '-B',
     buildDir
@@ -113,9 +113,9 @@ async function emConfigure (root, buildDir, generator, defines = {}, configureAr
     // defines.CMAKE_VERBOSE_MAKEFILE = 'ON'
     const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
     const cmakeArgs = ['cmake', 
+      ...gen,
       ...definesArgs,
       ...configureArgs,
-      ...gen,
       `-H.`,
       '-B',
       buildDir
@@ -153,9 +153,9 @@ async function emConfigure (root, buildDir, generator, defines = {}, configureAr
     }
     const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
     const cmakeArgs = ['cmake', 
+      ...gen,
       ...definesArgs,
       ...configureArgs,
-      ...gen,
       `-H.`,
       '-B',
       buildDir

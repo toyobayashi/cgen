@@ -100,6 +100,10 @@ class ConfigureAction extends CommandLineAction {
       description: 'Path to the output, must be relative to cwd',
       defaultValue: '.cgenbuild'
     })
+
+    this._remainder = this.defineCommandLineRemainder({
+      description: 'Arguments after -- pass to cmake'
+    })
   }
 
   onExecute () {
@@ -153,21 +157,21 @@ class ConfigureAction extends CommandLineAction {
       return Promise.resolve()
     }
     const cmake = require('../util/cmake.js')
+    const dd = this.remainder.values.indexOf('--')
+    const raw = dd === -1 ? [] : this.remainder.values.slice(dd + 1)
     const promise = this._emscripten.value ? cmake.emConfigure(root, path.join(root, buildDir), this._generator.value, {
       CMAKE_C_STANDARD: '11',
       CMAKE_CXX_STANDARD: '17',
       CMAKE_BUILD_TYPE: (!!this._debug.value) ? 'Debug' : 'Release',
       ...cmakeDefines
-    }) : cmake.configure(root, path.join(root, buildDir), this._generator.value, {
+    }, raw) : cmake.configure(root, path.join(root, buildDir), this._generator.value, {
       CMAKE_C_STANDARD: '11',
       CMAKE_CXX_STANDARD: '17',
       // CMAKE_VERBOSE_MAKEFILE: '1',
       // CMAKE_BUILD_RPATH_USE_ORIGIN: 'TRUE',
       ...((!!this._debug.value) ? { CMAKE_BUILD_TYPE: 'Debug' } : { CMAKE_BUILD_TYPE: 'Release' }),
       ...cmakeDefines
-    }, process.platform === 'win32' ? [
-      '-A', toCMakeArch(this._arch.value)
-    ] : [])
+    }, raw)
     return promise
   }
 }
