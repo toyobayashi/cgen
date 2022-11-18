@@ -54,7 +54,7 @@ async function getvsinfo () {
   return info
 }
 
-async function configure (root, buildDir, defines = {}, configureArgs = []) {
+async function configure (root, buildDir, generator, defines = {}, configureArgs = []) {
   if (process.platform === 'win32') {
     await getvsinfo()
   }
@@ -64,6 +64,7 @@ async function configure (root, buildDir, defines = {}, configureArgs = []) {
   const cmakeArgs = [ 
     ...definesArgs,
     ...configureArgs,
+    ...(generator ? ['-G', generator] : []),
     `-H.`,
     '-B',
     buildDir
