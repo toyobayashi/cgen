@@ -33,7 +33,7 @@ class ConfigureAction extends CommandLineAction {
     })
 
     this._arch = this.defineChoiceParameter({
-      alternatives: ['ia32', 'x64'],
+      alternatives: ['ia32', 'x64', 'arm64'],
       parameterLongName: '--arch',
       parameterShortName: '-a',
       description: 'Target architecture',
